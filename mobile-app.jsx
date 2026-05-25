@@ -586,7 +586,9 @@ function MobileApp() {
     actions: "Action Items",
     motions: "Motions & Votes",
     members: "Members",
+    membership: "Membership",
     attendance: "Attendance",
+    "take-attendance": "Take attendance",
     reviews: "Curriculum Reviews",
     policies: "Policies",
     linkage: "Linkage Map",
@@ -649,7 +651,10 @@ function MobileApp() {
         {screen === "detail"    && <DetailScreen entry={cur.params.entry} kind={cur.params.kind}
                                                   onItem={(itemKind, params) => push({ screen: "item", params: { kind: itemKind, ...params } })} />}
         {screen === "section"   && <SectionScreen section={cur.params.section}
-                                                  onSection={(name) => push({ screen: "section", params: { section: name } })}
+                                                  focusMemberId={cur.params.focusMemberId}
+                                                  ay={cur.params.ay}
+                                                  pop={pop}
+                                                  onSection={(name, focusMemberId, extra) => push({ screen: "section", params: { section: name, focusMemberId, ...(extra || {}) } })}
                                                   onItem={(kind, id) => push({ screen: "item", params: { kind, id } })} />}
         {screen === "item"      && <ItemScreen kind={cur.params.kind} id={cur.params.id} meetingId={cur.params.meetingId} idx={cur.params.idx} />}
       </div>
@@ -658,15 +663,18 @@ function MobileApp() {
 }
 
 // Section/item dispatchers
-function SectionScreen({ section, onSection, onItem }) {
+function SectionScreen({ section, onSection, onItem, focusMemberId, ay, pop }) {
   const S = window.MobileSections;
   if (!S) return <div className="m-body"><div className="m-empty"><h3>Loading…</h3></div></div>;
   switch (section) {
     case "overview":       return <S.OverviewScreen   onSection={onSection} onItem={onItem} />;
     case "actions":        return <S.ActionsScreen    onItem={onItem} />;
     case "motions":        return <S.MotionsScreen    onItem={onItem} />;
-    case "members":        return <S.MembersScreen    onItem={onItem} onSection={onSection} />;
-    case "attendance":     return <S.AttendanceScreen />;
+    case "members":        return <S.MembersScreen    onItem={onItem} />;
+    case "membership":     return <S.MembershipScreen onItem={onItem} onSection={onSection} />;
+    case "attendance":     return <S.AttendanceScreen focusMemberId={focusMemberId} ay={ay}
+                                                       onTake={(currentAy) => onSection("take-attendance", null, { ay: currentAy })} />;
+    case "take-attendance": return <S.LiveAttendanceTracker ay={ay || (window.ROSTERS ? window.ROSTERS.CURRENT_AY : "2025-26")} onDone={pop} />;
     case "reviews":        return <S.ReviewsScreen    onItem={onItem} />;
     case "policies":       return <S.PoliciesScreen   onItem={onItem} />;
     case "linkage":        return <S.LinkageScreen   />;
