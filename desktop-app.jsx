@@ -116,6 +116,24 @@
 .d-empty { background: var(--paper); border:1px dashed var(--grey-3); border-radius: var(--radius-lg); padding: 40px 24px; text-align:center; color: var(--grey-11); }
 .d-empty h3 { font-family: var(--serif); font-size: 16px; color: var(--ink); margin-bottom: 6px; }
 .d-prose { font-size: 12.5px; line-height: 1.6; color: var(--ink-2); white-space: pre-wrap; }
+
+/* charts */
+.d-chart svg { display:block; width:100%; height:auto; }
+.d-chartnote { font-size: 11.5px; color: var(--grey-11); margin-top: 10px; line-height: 1.5; }
+.d-chartnote b { color: var(--ink-2); font-weight: 600; }
+.d-donut-wrap { display:flex; align-items:center; gap: 20px; }
+.d-donut-legend { display:flex; flex-direction:column; gap: 9px; font-size: 12px; }
+.d-donut-legend .it { display:flex; align-items:center; gap: 8px; }
+.d-donut-legend .it .sw { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 10px; }
+.d-donut-legend .it .v { margin-left: auto; font-family: var(--mono); color: var(--grey-11); padding-left: 12px; }
+.d-hbars .hb { display:flex; align-items:center; gap: 10px; margin-bottom: 9px; font-size: 12px; }
+.d-hbars .hb .lbl { flex: 0 0 168px; color: var(--ink-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.d-hbars .hb .lbl .std { font-family: var(--mono); color: var(--grey-7); margin-right: 6px; }
+.d-hbars .hb .track { flex: 1; height: 16px; background: var(--grey-1); border-radius: 4px; overflow:hidden; display:flex; }
+.d-hbars .hb .track .seg { height: 100%; }
+.d-hbars .hb .n { flex: 0 0 auto; font-family: var(--mono); font-size: 11px; color: var(--grey-11); min-width: 28px; text-align:right; }
+.d-stacklegend { display:flex; gap: 16px; margin-bottom: 14px; font-size: 11.5px; color: var(--grey-11); }
+.d-stacklegend .it { display:flex; align-items:center; gap:6px; } .d-stacklegend .it .sw { width:11px; height:11px; border-radius:3px; }
 `;
 
   // ── small utilities ─────────────────────────────────────────────────────
@@ -180,6 +198,145 @@
   function CDot({ id }) {
     const c = cmt(id);
     return <span className="d-cdot"><span className="sw" style={{ background: c.color }} />{c.short}</span>;
+  }
+
+  // ── Charts (dependency-free SVG / HTML in the brand palette) ────────────────
+  // Literal hex (not CSS vars) so colours resolve inside SVG presentation attrs.
+  const PAL = {
+    violet: "#221F72", cyan: "#00AEEF", cyanDeep: "#008CC0", magenta: "#D80B8C",
+    good: "#1F8A4C", goodTint: "#E4F3EA", bad: "#B82B1E", badTint: "#FAE5E2",
+    warn: "#B0710A", warnTint: "#FAF1DC", grey1: "#F5F6F7", grey2: "#ECEDEF",
+    grey3: "#DEDFE2", grey7: "#8A8B8E", grey11: "#58595B", ink: "#141414", paper: "#FFFFFF",
+  };
+
+  // (1) EEC attendance trend — area + line with a dashed quorum threshold.
+  function AttendanceTrend({ height = 190, compact = false }) {
+    const e = E();
+    const c = e.committeeById["EEC"] || { quorum: 8, votingSeats: 19 };
+    const pts = e.MEETINGS.filter(isFiled).sort((a, b) => a.date.localeCompare(b.date))
+      .filter((m) => m.attendanceRate != null)
+      .map((m) => ({ date: m.date, v: Math.round(m.attendanceRate * 100) }));
+    if (!pts.length) return null;
+    const quorum = Math.round((c.quorum / c.votingSeats) * 100);
+    const W = 660, H = height, padL = compact ? 4 : 32, padR = compact ? 4 : 56, padT = 10, padB = compact ? 6 : 24;
+    const iw = W - padL - padR, ih = H - padT - padB, n = pts.length;
+    const X = (i) => padL + (n <= 1 ? iw / 2 : (i / (n - 1)) * iw);
+    const Y = (v) => padT + (1 - v / 100) * ih;
+    const line = pts.map((p, i) => `${i ? "L" : "M"}${X(i).toFixed(1)},${Y(p.v).toFixed(1)}`).join(" ");
+    const area = `${line} L${X(n - 1).toFixed(1)},${(padT + ih).toFixed(1)} L${X(0).toFixed(1)},${(padT + ih).toFixed(1)} Z`;
+    const below = pts.filter((p) => p.v < quorum).length;
+    return (
+      <div className="d-chart">
+        <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="EEC attendance by meeting">
+          <defs><linearGradient id="dAtt" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={PAL.cyan} stopOpacity="0.20" /><stop offset="100%" stopColor={PAL.cyan} stopOpacity="0.02" />
+          </linearGradient></defs>
+          {!compact && [0, 50, 100].map((g) => (
+            <g key={g}>
+              <line x1={padL} x2={W - padR} y1={Y(g)} y2={Y(g)} stroke={PAL.grey2} strokeWidth="1" />
+              <text x={padL - 6} y={Y(g) + 3} textAnchor="end" fontSize="9" fill={PAL.grey7} fontFamily="monospace">{g}</text>
+            </g>
+          ))}
+          <line x1={padL} x2={W - padR} y1={Y(quorum)} y2={Y(quorum)} stroke={PAL.warn} strokeWidth="1.2" strokeDasharray="4 3" />
+          {!compact && <text x={W - padR + 4} y={Y(quorum) + 3} fontSize="9" fill={PAL.warn} fontFamily="monospace">Quorum {quorum}%</text>}
+          <path d={area} fill="url(#dAtt)" />
+          <path d={line} fill="none" stroke={PAL.violet} strokeWidth={compact ? 1.6 : 2.2} strokeLinejoin="round" strokeLinecap="round" />
+          {pts.map((p, i) => (
+            <circle key={i} cx={X(i)} cy={Y(p.v)} r={compact ? 2 : 3.4} fill={p.v < quorum ? PAL.bad : PAL.good} stroke={PAL.paper} strokeWidth="1.4">
+              <title>{fmt(p.date, "mdy")}: {p.v}% present</title>
+            </circle>
+          ))}
+          {!compact && pts.map((p, i) => (i % 2 === 0 ? (
+            <text key={"t" + i} x={X(i)} y={H - 6} textAnchor="middle" fontSize="8.5" fill={PAL.grey7} fontFamily="monospace">
+              {D(p.date).toLocaleDateString("en-US", { month: "short" })}
+            </text>
+          ) : null))}
+        </svg>
+        {!compact && <div className="d-chartnote"><b>{below}</b> of {pts.length} meetings fell below quorum ({quorum}%); attendance has held at <b>100%</b> since the November faculty-development session.</div>}
+      </div>
+    );
+  }
+
+  // (3 compact) Overall action-plan status donut.
+  function StatusDonut({ counts, size = 132 }) {
+    const order = [["Completed", PAL.good], ["In Progress", PAL.cyan], ["Not Started", PAL.warn]];
+    const total = order.reduce((s, [k]) => s + (counts[k] || 0), 0) || 1;
+    const r = size / 2 - 12, cx = size / 2, cy = size / 2, circ = 2 * Math.PI * r;
+    let acc = 0;
+    return (
+      <div className="d-donut-wrap">
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label="Action plan status">
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke={PAL.grey2} strokeWidth="14" />
+          {order.map(([k, col]) => {
+            const v = counts[k] || 0; if (!v) return null;
+            const len = (v / total) * circ;
+            const seg = <circle key={k} cx={cx} cy={cy} r={r} fill="none" stroke={col} strokeWidth="14"
+              strokeDasharray={`${len} ${circ - len}`} strokeDashoffset={-acc}
+              transform={`rotate(-90 ${cx} ${cy})`} strokeLinecap="butt" />;
+            acc += len; return seg;
+          })}
+          <text x={cx} y={cy - 2} textAnchor="middle" fontSize="26" fontWeight="700" fill={PAL.ink} fontFamily="var(--serif)">{total}</text>
+          <text x={cx} y={cy + 15} textAnchor="middle" fontSize="9" fill={PAL.grey7} letterSpacing="1.5">ITEMS</text>
+        </svg>
+        <div className="d-donut-legend">
+          {order.map(([k, col]) => (
+            <div className="it" key={k}><span className="sw" style={{ background: col }} />{k}<span className="v">{counts[k] || 0}</span></div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // (2) LCME standard coverage — horizontal bars (tag frequency across motions + actions + agenda).
+  const LCME_STD = { "1": "Mission & CQI", "3": "Learning Environment", "4": "Faculty", "5": "Resources", "6": "Competencies & Objectives", "7": "Curriculum Content", "8": "Curricular Mgmt & Eval", "9": "Assessment", "10": "Admissions", "11": "Academic Support", "12": "Well-being & Advising" };
+  function LcmeCoverage() {
+    const e = E();
+    const counts = {};
+    const bump = (ids) => (ids || []).forEach((id) => { const s = String(id).split(".")[0]; if (LCME_STD[s]) counts[s] = (counts[s] || 0) + 1; });
+    e.MOTIONS.forEach((m) => bump(m.lcme));
+    e.ACTIONS.forEach((a) => bump(a.lcme));
+    e.MEETINGS.forEach((m) => (m.items || []).forEach((it) => bump(it.lcme)));
+    const rows = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    const max = rows.length ? rows[0][1] : 1;
+    return (
+      <div className="d-hbars">
+        {rows.map(([std, n]) => (
+          <div className="hb" key={std}>
+            <span className="lbl"><span className="std">{std}</span>{LCME_STD[std]}</span>
+            <span className="track"><span className="seg" style={{ width: Math.max(2, (n / max) * 100) + "%", background: PAL.cyan }} /></span>
+            <span className="n">{n}</span>
+          </div>
+        ))}
+        <div className="d-chartnote">Activity concentrates on <b>Standard 8</b> (curricular management) and <b>Standard 9</b> (assessment). Sparse standards flag where committee attention — or just LCME tagging — is thin.</div>
+      </div>
+    );
+  }
+
+  // (3) Action-plan status by domain — stacked horizontal bars for the given rows.
+  function StatusByDomain({ rows }) {
+    const SEG = [["Not Started", PAL.warn], ["In Progress", PAL.cyan], ["Completed", PAL.good]];
+    const byDom = {};
+    rows.forEach((a) => { const d = a.domain || "Other"; (byDom[d] = byDom[d] || { "Not Started": 0, "In Progress": 0, "Completed": 0, total: 0 }); if (byDom[d][a.status] != null) byDom[d][a.status]++; byDom[d].total++; });
+    const doms = Object.entries(byDom).sort((a, b) => b[1].total - a[1].total);
+    const max = doms.length ? doms[0][1].total : 1;
+    if (!doms.length) return null;
+    return (
+      <div className="card" style={{ marginBottom: 14 }}>
+        <div className="card-header"><span className="card-title">Status by domain</span><span className="card-meta">{rows.length} items shown</span></div>
+        <div className="d-stacklegend">{SEG.map(([k, c]) => <span className="it" key={k}><span className="sw" style={{ background: c }} />{k}</span>)}</div>
+        <div className="d-hbars">
+          {doms.map(([d, cts]) => (
+            <div className="hb" key={d}>
+              <span className="lbl">{d}</span>
+              <span className="track" style={{ width: Math.max(8, (cts.total / max) * 100) + "%", flex: "none" }}>
+                {SEG.map(([k, c]) => (cts[k] ? <span key={k} className="seg" style={{ width: (cts[k] / cts.total) * 100 + "%", background: c }} title={`${k}: ${cts[k]}`} /> : null))}
+              </span>
+              <span className="n">{cts.total}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   // ── Sidebar ───────────────────────────────────────────────────────────────
@@ -337,16 +494,7 @@
           <div className="col" style={{ gap: 18 }}>
             <div className="card">
               <div className="card-header"><span className="card-title">Action plan status</span><a className="card-meta" style={{ cursor: "pointer" }} onClick={() => onNav("actions", "ALL")}>Open →</a></div>
-              {Object.entries(byStatus).map(([k, v]) => {
-                const pct = totalA ? Math.round((v / totalA) * 100) : 0;
-                const cls = k === "Completed" ? "good" : k === "In Progress" ? "" : "warn";
-                return (
-                  <div key={k} style={{ marginBottom: 12 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 5 }}><span>{k}</span><span className="t-mono" style={{ color: "var(--grey-11)" }}>{v}</span></div>
-                    <div className="bar-track"><div className={"bar-fill " + cls} style={{ width: pct + "%" }} /></div>
-                  </div>
-                );
-              })}
+              <StatusDonut counts={byStatus} />
             </div>
             <div className="card d-listcard">
               <div className="card-header"><span className="card-title">Upcoming meetings</span></div>
@@ -358,6 +506,17 @@
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+
+        <div className="d-grid2" style={{ marginTop: 18 }}>
+          <div className="card">
+            <div className="card-header"><span className="card-title">EEC attendance trend</span><a className="card-meta" style={{ cursor: "pointer" }} onClick={() => onNav("attendance", "ALL")}>Detail →</a></div>
+            <AttendanceTrend height={188} />
+          </div>
+          <div className="card">
+            <div className="card-header"><span className="card-title">LCME standard coverage</span><span className="card-meta">tag frequency</span></div>
+            <LcmeCoverage />
           </div>
         </div>
       </>
@@ -620,6 +779,10 @@
     return (
       <>
         <div className="d-head"><h1>Attendance</h1><div className="lede">EEC attendance matrix across {meetings.length} meetings with filed minutes. Each member's voting attendance is plotted by meeting; click a name for their full record.</div></div>
+        <div className="card" style={{ marginBottom: 18 }}>
+          <div className="card-header"><span className="card-title">Attendance rate by meeting</span><span className="card-meta">% of voting members present</span></div>
+          <AttendanceTrend height={210} />
+        </div>
         <div className="d-heatwrap">
           <table className="d-heat">
             <thead>
@@ -739,6 +902,7 @@
           </label>
           <div className="spacer" /><span className="t-num" style={{ fontSize: 12, color: "var(--grey-11)" }}>{rows.length} items</span>
         </div>
+        <StatusByDomain rows={rows} />
         <div className="card" style={{ padding: 0, overflow: "hidden" }}>
           <table className="tbl">
             <thead><tr><th style={{ paddingLeft: 16 }}>ID</th><th>Action</th><th>Domain</th><th>Committee</th><th>Status</th><th style={{ minWidth: 120 }}>Progress</th><th>Target</th></tr></thead>
