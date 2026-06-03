@@ -48,6 +48,29 @@
 .d-hero.empty:hover { transform: none; box-shadow: none; }
 .d-hero.empty .when { font-size: 16px; color: var(--grey-11); font-family: var(--sans); font-weight: 500; }
 .d-rest-head { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--grey-11); font-weight: 600; margin: 4px 0 10px; }
+.d-month-strip {
+  position: sticky; top: 56px; z-index: 20;
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 8px 0 10px; margin: 0 0 6px;
+  background: var(--grey-1); border-bottom: 1px solid var(--grey-2);
+}
+.d-month-chip {
+  flex: 0 0 auto; padding: 4px 11px;
+  border-radius: 999px; border: 1px solid var(--grey-3);
+  background: var(--paper); color: var(--grey-11);
+  font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+  font-family: var(--sans); cursor: pointer; white-space: nowrap;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.d-month-chip:hover { border-color: var(--grey-5); }
+.d-month-chip .yr { opacity: 0.55; margin-left: 3px; }
+.d-month-chip.active { background: var(--ink); border-color: var(--ink); color: #fff; }
+.d-month-chip.active .yr { opacity: 0.85; }
+.tbl tr.d-month-row td {
+  background: var(--grey-1); color: var(--grey-11);
+  font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700;
+  padding: 9px 16px 6px; border-top: 1px solid var(--grey-2);
+}
 
 /* segmented committee filter */
 .d-seg { display: inline-flex; gap: 2px; padding: 3px; background: var(--grey-2); border-radius: 999px; margin: 2px 0 18px; flex-wrap: wrap; }
@@ -705,6 +728,53 @@
       return { past: pa, next: nx, rest: rows.filter((m) => !keep.has(m.id)) };
     }, [rows, todayStr]);
 
+    // Month groups for the jump strip (rows are newest-first).
+    const monthGroups = useMemo(() => {
+      const order = []; const map = new Map();
+      rest.forEach((m) => { const k = m.date.slice(0, 7); if (!map.has(k)) { map.set(k, []); order.push(k); } map.get(k).push(m); });
+      return order.map((k) => ({ key: k, items: map.get(k) }));
+    }, [rest]);
+    const stripMonths = monthGroups.map((g) => g.key);
+    const [activeMonth, setActiveMonth] = useState(null);
+    const stripRef = useRef(null);
+    const TOPBAR_H = 56; // .topbar height in styles.css
+
+    // Scroll the window so a month's divider row sits just under the sticky strip.
+    function scrollToMonth(key) {
+      const row = document.querySelector(`tr[data-month="${key}"]`);
+      if (!row) return;
+      const stripH = stripRef.current ? stripRef.current.offsetHeight : 0;
+      const start = window.scrollY;
+      const dest = Math.max(0, start + row.getBoundingClientRect().top - TOPBAR_H - stripH - 8);
+      setActiveMonth(key);
+      const dist = dest - start;
+      if (Math.abs(dist) < 1) { window.scrollTo(0, dest); return; }
+      const dur = 340, t0 = performance.now();
+      (function step(now) {
+        const p = Math.min(1, (now - t0) / dur);
+        const ease = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+        window.scrollTo(0, start + dist * ease);
+        if (p < 1) requestAnimationFrame(step);
+      })(t0);
+    }
+
+    // Scroll-spy: highlight the month whose divider has reached the sticky line.
+    useEffect(() => {
+      if (!stripMonths.length) return;
+      function onScroll() {
+        const stripH = stripRef.current ? stripRef.current.offsetHeight : 0;
+        const line = TOPBAR_H + stripH + 10;
+        let cur = stripMonths[0];
+        document.querySelectorAll("tr[data-month]").forEach((r) => {
+          if (r.getBoundingClientRect().top <= line) cur = r.dataset.month;
+        });
+        setActiveMonth((prev) => (prev === cur ? prev : cur));
+      }
+      onScroll();
+      window.addEventListener("scroll", onScroll, { passive: true });
+      return () => window.removeEventListener("scroll", onScroll);
+    }, [stripMonths.join(",")]);
+
     return (
       <>
         <div className="d-head"><h1>Meetings &amp; Minutes</h1><div className="lede">The two cards below jump to the most recent meeting and the next one coming up, based on today's date. Everything else is listed underneath.</div></div>
@@ -720,28 +790,47 @@
             {rest.length > 0 && (
               <>
                 <div className="d-rest-head">All meetings · {rest.length}</div>
+                {stripMonths.length > 1 && (
+                  <div className="d-month-strip" ref={stripRef}>
+                    {stripMonths.map((key) => {
+                      const md = D(key + "-01");
+                      const isActive = key === activeMonth;
+                      return (
+                        <button key={key} className={"d-month-chip" + (isActive ? " active" : "")} onClick={() => scrollToMonth(key)}>
+                          {md.toLocaleDateString("en-US", { month: "short" })}
+                          <span className="yr">'{String(md.getFullYear()).slice(-2)}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
                 <div className="card" style={{ padding: 0, overflow: "hidden" }}>
                   <table className="tbl">
                     <thead><tr><th style={{ paddingLeft: 16 }}>Date</th><th>Committee</th><th>Type</th><th className="num">Agenda</th><th className="num">Motions</th><th>Attendance</th><th>Status</th></tr></thead>
                     <tbody>
-                      {rest.map((m) => {
-                        const motions = e.MOTIONS.filter((v) => v.meetingId === m.id).length;
-                        const att = m.attendanceRate != null ? Math.round(m.attendanceRate * 100) + "%" : "—";
-                        const nItems = (m.items || []).length;
-                        const statusLabel = m.planned ? "Agenda set" : m.minutesStatus;
-                        const statusCls = m.planned ? "cyan" : minutesPill(m.minutesStatus);
-                        return (
-                          <tr key={m.id} className="row-link" onClick={() => onSelect({ type: "meeting", id: m.id })}>
-                            <td style={{ paddingLeft: 16, whiteSpace: "nowrap" }} className="mono">{fmt(m.date, "mdy")}</td>
-                            <td><CDot id={m.committee} /></td>
-                            <td style={{ maxWidth: 280 }}>{m.type.replace("Regular Scheduled Meeting", "Regular")}</td>
-                            <td className="num">{nItems || "—"}</td>
-                            <td className="num">{motions || "—"}</td>
-                            <td className="t-mono" style={{ color: "var(--grey-11)" }}>{att}</td>
-                            <td><span className={"pill " + statusCls}>{statusLabel}</span></td>
-                          </tr>
-                        );
-                      })}
+                      {monthGroups.map((g) => (
+                        <React.Fragment key={g.key}>
+                          <tr data-month={g.key} className="d-month-row"><td colSpan={7}>{D(g.key + "-01").toLocaleDateString("en-US", { month: "long", year: "numeric" })}</td></tr>
+                          {g.items.map((m) => {
+                            const motions = e.MOTIONS.filter((v) => v.meetingId === m.id).length;
+                            const att = m.attendanceRate != null ? Math.round(m.attendanceRate * 100) + "%" : "—";
+                            const nItems = (m.items || []).length;
+                            const statusLabel = m.planned ? "Agenda set" : m.minutesStatus;
+                            const statusCls = m.planned ? "cyan" : minutesPill(m.minutesStatus);
+                            return (
+                              <tr key={m.id} className="row-link" onClick={() => onSelect({ type: "meeting", id: m.id })}>
+                                <td style={{ paddingLeft: 16, whiteSpace: "nowrap" }} className="mono">{fmt(m.date, "mdy")}</td>
+                                <td><CDot id={m.committee} /></td>
+                                <td style={{ maxWidth: 280 }}>{m.type.replace("Regular Scheduled Meeting", "Regular")}</td>
+                                <td className="num">{nItems || "—"}</td>
+                                <td className="num">{motions || "—"}</td>
+                                <td className="t-mono" style={{ color: "var(--grey-11)" }}>{att}</td>
+                                <td><span className={"pill " + statusCls}>{statusLabel}</span></td>
+                              </tr>
+                            );
+                          })}
+                        </React.Fragment>
+                      ))}
                     </tbody>
                   </table>
                 </div>
