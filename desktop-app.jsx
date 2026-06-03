@@ -28,6 +28,27 @@
 .d-head h1 { font-family: var(--serif); font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
 .d-head .lede { color: var(--grey-11); font-size: 13px; margin-top: 4px; max-width: 720px; line-height: 1.55; }
 
+/* Hero cards — immediate past + next upcoming meeting (live vs access date) */
+.d-hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 4px 0 26px; }
+@media (max-width: 760px) { .d-hero-row { grid-template-columns: 1fr; } }
+.d-hero { position: relative; text-align: left; border: 1px solid var(--grey-2); border-radius: var(--radius-lg); padding: 18px 20px 18px 24px; background: var(--paper); box-shadow: var(--shadow-sm); cursor: pointer; overflow: hidden; transition: box-shadow .18s ease, transform .18s ease; font: inherit; color: inherit; display: block; }
+.d-hero:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.d-hero .accent { position: absolute; left: 0; top: 0; bottom: 0; width: 5px; }
+.d-hero .glow { position: absolute; right: -40px; top: -40px; width: 160px; height: 160px; border-radius: 50%; opacity: .10; pointer-events: none; }
+.d-hero .eyebrow { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 600; color: var(--grey-11); }
+.d-hero .eyebrow svg { width: 14px; height: 14px; }
+.d-hero .when { font-family: var(--serif); font-size: 27px; font-weight: 600; letter-spacing: -0.02em; color: var(--ink); line-height: 1.1; margin: 10px 0 3px; }
+.d-hero .rel { font-size: 12px; color: var(--grey-11); }
+.d-hero .row { display: flex; align-items: center; gap: 9px; margin-top: 14px; flex-wrap: wrap; }
+.d-hero .cname { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--ink); }
+.d-hero .cname .sw { width: 9px; height: 9px; border-radius: 2px; }
+.d-hero .open { position: absolute; right: 16px; bottom: 16px; color: var(--grey-7); display: inline-flex; }
+.d-hero.next { background: linear-gradient(180deg, var(--brand-cyan-tint), var(--paper) 70%); }
+.d-hero.empty { cursor: default; box-shadow: none; background: var(--grey-1); border-style: dashed; }
+.d-hero.empty:hover { transform: none; box-shadow: none; }
+.d-hero.empty .when { font-size: 16px; color: var(--grey-11); font-family: var(--sans); font-weight: 500; }
+.d-rest-head { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--grey-11); font-weight: 600; margin: 4px 0 10px; }
+
 /* segmented committee filter */
 .d-seg { display: inline-flex; gap: 2px; padding: 3px; background: var(--grey-2); border-radius: 999px; margin: 2px 0 18px; flex-wrap: wrap; }
 .d-seg button { border: 0; background: transparent; padding: 6px 14px; border-radius: 999px; font: inherit; font-size: 12px; color: var(--grey-11); cursor: pointer; letter-spacing: 0.01em; }
@@ -573,42 +594,110 @@
   }
 
   // ════════════════ MEETINGS ════════════════
+  function relWhen(dateStr, todayStr) {
+    const days = Math.round((D(dateStr) - D(todayStr)) / 86400000);
+    if (days === 0) return "Today";
+    if (days === 1) return "Tomorrow";
+    if (days === -1) return "Yesterday";
+    return days > 0 ? `in ${days} days` : `${Math.abs(days)} days ago`;
+  }
+
+  function MeetingHero({ kind, m, onSelect, todayStr }) {
+    const isNext = kind === "next";
+    const label = isNext ? "Next meeting" : "Most recent meeting";
+    if (!m) {
+      return (
+        <div className="d-hero empty">
+          <div className="eyebrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{ICONS.cal}</svg>{label}
+          </div>
+          <div className="when">{isNext ? "No upcoming meeting scheduled" : "No past meeting on record"}</div>
+        </div>
+      );
+    }
+    const c = cmt(m.committee);
+    const nItems = (m.items || []).length;
+    const statusLabel = isFiled(m) ? m.minutesStatus : (m.planned ? "Agenda set" : m.minutesStatus);
+    const statusCls = isFiled(m) ? minutesPill(m.minutesStatus) : (m.planned ? "cyan" : "muted");
+    const bigDate = D(m.date).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+    return (
+      <button className={"d-hero" + (isNext ? " next" : "")} onClick={() => onSelect({ type: "meeting", id: m.id })}>
+        <span className="accent" style={{ background: c.color }} />
+        <span className="glow" style={{ background: c.color }} />
+        <div className="eyebrow" style={{ color: isNext ? "var(--brand-cyan-deep)" : "var(--grey-11)" }}>
+          {isNext
+            ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{ICONS.cal}</svg>
+            : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15 14" /></svg>}
+          {label}
+        </div>
+        <div className="when">{bigDate}</div>
+        <div className="rel">{relWhen(m.date, todayStr)} · {fmt(m.date, "mdy")}</div>
+        <div className="row">
+          <span className="cname"><span className="sw" style={{ background: c.color }} />{c.short}</span>
+          <span className={"pill " + statusCls} style={{ fontSize: 10.5 }}>{statusLabel}</span>
+          {nItems > 0 && <span className="pill muted" style={{ fontSize: 10.5 }}>{nItems} agenda item{nItems === 1 ? "" : "s"}</span>}
+        </div>
+        <span className="open"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{ICONS.chev}</svg></span>
+      </button>
+    );
+  }
+
   function Meetings({ committee, setCommittee, onSelect }) {
     const e = E();
     const rows = useMemo(() => allMeetings(committee), [committee]);
+    const todayStr = (window.MS_DATE && window.MS_DATE.ymdLocal) ? window.MS_DATE.ymdLocal(new Date()) : new Date().toISOString().slice(0, 10);
+    const { past, next, rest } = useMemo(() => {
+      const future = rows.filter((m) => m.date >= todayStr).sort((a, b) => a.date.localeCompare(b.date));
+      const earlier = rows.filter((m) => m.date < todayStr); // rows are already newest-first
+      const nx = future[0] || null;
+      const pa = earlier[0] || null;
+      const keep = new Set([nx && nx.id, pa && pa.id].filter(Boolean));
+      return { past: pa, next: nx, rest: rows.filter((m) => !keep.has(m.id)) };
+    }, [rows, todayStr]);
 
     return (
       <>
-        <div className="d-head"><h1>Meetings &amp; Minutes</h1><div className="lede">Filed minutes and scheduled sessions. Open a meeting for its agenda, motions, action plans, and the approved minutes document.</div></div>
+        <div className="d-head"><h1>Meetings &amp; Minutes</h1><div className="lede">The two cards below jump to the most recent meeting and the next one coming up, based on today's date. Everything else is listed underneath.</div></div>
         <CommitteeFilter value={committee} onChange={setCommittee} />
         {rows.length === 0 ? (
           <div className="d-empty"><h3>Pending intake</h3><p>No meetings on record for this committee yet.</p></div>
         ) : (
-          <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-            <table className="tbl">
-              <thead><tr><th style={{ paddingLeft: 16 }}>Date</th><th>Committee</th><th>Type</th><th className="num">Agenda</th><th className="num">Motions</th><th>Attendance</th><th>Status</th></tr></thead>
-              <tbody>
-                {rows.map((m) => {
-                  const motions = e.MOTIONS.filter((v) => v.meetingId === m.id).length;
-                  const att = m.attendanceRate != null ? Math.round(m.attendanceRate * 100) + "%" : "—";
-                  const nItems = (m.items || []).length;
-                  const statusLabel = m.planned ? "Agenda set" : m.minutesStatus;
-                  const statusCls = m.planned ? "cyan" : minutesPill(m.minutesStatus);
-                  return (
-                    <tr key={m.id} className="row-link" onClick={() => onSelect({ type: "meeting", id: m.id })}>
-                      <td style={{ paddingLeft: 16, whiteSpace: "nowrap" }} className="mono">{fmt(m.date, "mdy")}</td>
-                      <td><CDot id={m.committee} /></td>
-                      <td style={{ maxWidth: 280 }}>{m.type.replace("Regular Scheduled Meeting", "Regular")}</td>
-                      <td className="num">{nItems || "—"}</td>
-                      <td className="num">{motions || "—"}</td>
-                      <td className="t-mono" style={{ color: "var(--grey-11)" }}>{att}</td>
-                      <td><span className={"pill " + statusCls}>{statusLabel}</span></td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <>
+            <div className="d-hero-row">
+              <MeetingHero kind="past" m={past} onSelect={onSelect} todayStr={todayStr} />
+              <MeetingHero kind="next" m={next} onSelect={onSelect} todayStr={todayStr} />
+            </div>
+            {rest.length > 0 && (
+              <>
+                <div className="d-rest-head">All meetings · {rest.length}</div>
+                <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+                  <table className="tbl">
+                    <thead><tr><th style={{ paddingLeft: 16 }}>Date</th><th>Committee</th><th>Type</th><th className="num">Agenda</th><th className="num">Motions</th><th>Attendance</th><th>Status</th></tr></thead>
+                    <tbody>
+                      {rest.map((m) => {
+                        const motions = e.MOTIONS.filter((v) => v.meetingId === m.id).length;
+                        const att = m.attendanceRate != null ? Math.round(m.attendanceRate * 100) + "%" : "—";
+                        const nItems = (m.items || []).length;
+                        const statusLabel = m.planned ? "Agenda set" : m.minutesStatus;
+                        const statusCls = m.planned ? "cyan" : minutesPill(m.minutesStatus);
+                        return (
+                          <tr key={m.id} className="row-link" onClick={() => onSelect({ type: "meeting", id: m.id })}>
+                            <td style={{ paddingLeft: 16, whiteSpace: "nowrap" }} className="mono">{fmt(m.date, "mdy")}</td>
+                            <td><CDot id={m.committee} /></td>
+                            <td style={{ maxWidth: 280 }}>{m.type.replace("Regular Scheduled Meeting", "Regular")}</td>
+                            <td className="num">{nItems || "—"}</td>
+                            <td className="num">{motions || "—"}</td>
+                            <td className="t-mono" style={{ color: "var(--grey-11)" }}>{att}</td>
+                            <td><span className={"pill " + statusCls}>{statusLabel}</span></td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </>
         )}
       </>
     );
