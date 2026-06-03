@@ -30,11 +30,20 @@ window.MS_DATE = { parseLocal, ymdLocal };
 
 // Set of minutes-file dates actually present on disk under minutes/EEC_Minutes_<date>.docx.
 // Update if more files are added.
+// Minutes files that exist in /minutes, keyed "COMMITTEE|YYYY-MM-DD".
+// Filenames follow <COMMITTEE>_Minutes_<date>.docx (e.g. EEC_Minutes_2025-07-11.docx,
+// PCCS_Minutes_2026-01-20.docx). Add a "<COMMITTEE>|<date>" entry here when the
+// corresponding .docx is uploaded to /minutes for that subcommittee.
 const MINUTES_AVAILABLE = new Set([
-  "2025-07-11", "2025-08-22", "2025-09-05", "2025-09-19", "2025-10-03",
-  "2025-10-17", "2025-11-07", "2025-11-21", "2025-12-05", "2025-12-19",
-  "2026-01-09", "2026-01-23", "2026-02-06", "2026-02-20", "2026-03-06",
-  "2026-05-08",
+  "EEC|2025-07-11", "EEC|2025-08-22", "EEC|2025-09-05", "EEC|2025-09-19", "EEC|2025-10-03",
+  "EEC|2025-10-17", "EEC|2025-11-07", "EEC|2025-11-21", "EEC|2025-12-05", "EEC|2025-12-19",
+  "EEC|2026-01-09", "EEC|2026-01-23", "EEC|2026-02-06", "EEC|2026-02-20", "EEC|2026-03-06",
+  "EEC|2026-05-08",
+
+  // PCCS — add entries as PCCS minutes are filed
+  // CCS  — add entries as CCS minutes are filed
+  // CIS  — add entries as CIS minutes are filed
+  // AES  — add entries as AES minutes are filed
 ]);
 
 const COMMITTEE_SCHEDULES = {
@@ -56,8 +65,8 @@ const COMMITTEE_SCHEDULES = {
     "2025-12-16", "2026-01-06", "2026-01-20", "2026-02-03", "2026-03-17",
     "2026-04-14", "2026-05-19", "2026-06-16",
     // AY 2026–27
-    "2026-07-14", "2026-08-11", "2026-09-08", "2026-10-06", "2026-11-10",
-    "2026-12-08", "2027-01-05", "2027-01-19", "2027-02-02", "2027-03-16",
+    "2026-07-14", "2026-08-04", "2026-09-08", "2026-10-06", "2026-11-10",
+    "2026-12-15", "2027-01-05", "2027-01-19", "2027-02-02", "2027-03-16",
     "2027-04-13", "2027-05-18", "2027-06-15",
   ],
   PCCS: [
@@ -83,8 +92,6 @@ const COMMITTEE_SCHEDULES = {
     // CIS launches mid-2026
     "2026-06-18", "2026-07-16", "2026-08-20", "2026-09-17", "2026-10-15",
     "2026-11-19", "2026-12-17",
-    // AY 2026–27 (from Agenda Tracker — only dates with planned items added so far)
-    "2027-02-11",
   ],
 };
 
@@ -171,8 +178,13 @@ function build() {
   return byCommittee;
 }
 
-function hasMinutesFile(date) {
-  return MINUTES_AVAILABLE.has(date);
+function hasMinutesFile(committee, date) {
+  // Preferred: hasMinutesFile(committee, date) — checks the exact committee + date.
+  if (date !== undefined) return MINUTES_AVAILABLE.has(committee + "|" + date);
+  // Back-compat: hasMinutesFile(date) — true if ANY committee filed minutes that date.
+  const d = committee;
+  for (const key of MINUTES_AVAILABLE) { if (key.endsWith("|" + d)) return true; }
+  return false;
 }
 
 window.MOBILE_SCHEDULE = {

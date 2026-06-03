@@ -48,39 +48,6 @@
 .d-hero.empty:hover { transform: none; box-shadow: none; }
 .d-hero.empty .when { font-size: 16px; color: var(--grey-11); font-family: var(--sans); font-weight: 500; }
 .d-rest-head { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--grey-11); font-weight: 600; margin: 4px 0 10px; }
-.d-month-strip {
-  position: sticky; top: 56px; z-index: 20;
-  display: flex; flex-direction: column; gap: 6px;
-  padding: 8px 0 10px; margin: 0 0 6px;
-  background: var(--grey-1); border-bottom: 1px solid var(--grey-2);
-}
-.d-ay-band {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
-  padding: 6px 10px; border-radius: 10px;
-}
-.d-ay-band .ay-lbl {
-  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700;
-  color: var(--grey-11); margin-right: 2px; white-space: nowrap;
-}
-.d-ay-band.ay-a { background: rgba(34,31,114,0.06); border: 1px solid rgba(34,31,114,0.12); }
-.d-ay-band.ay-b { background: rgba(0,174,239,0.07); border: 1px solid rgba(0,174,239,0.16); }
-.d-month-chip {
-  flex: 0 0 auto; padding: 4px 11px;
-  border-radius: 999px; border: 1px solid var(--grey-3);
-  background: var(--paper); color: var(--grey-11);
-  font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
-  font-family: var(--sans); cursor: pointer; white-space: nowrap;
-  transition: background .15s ease, color .15s ease, border-color .15s ease;
-}
-.d-month-chip:hover { border-color: var(--grey-5); }
-.d-month-chip .yr { opacity: 0.55; margin-left: 3px; }
-.d-month-chip.active { background: var(--ink); border-color: var(--ink); color: #fff; }
-.d-month-chip.active .yr { opacity: 0.85; }
-.tbl tr.d-month-row td {
-  background: var(--grey-1); color: var(--grey-11);
-  font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700;
-  padding: 9px 16px 6px; border-top: 1px solid var(--grey-2);
-}
 
 /* segmented committee filter */
 .d-seg { display: inline-flex; gap: 2px; padding: 3px; background: var(--grey-2); border-radius: 999px; margin: 2px 0 18px; flex-wrap: wrap; }
@@ -205,46 +172,6 @@
   const cmt = (id) => E().committeeById[id] || { short: id, name: id, color: "var(--grey-7)", deep: "var(--grey-11)", tint: "var(--grey-1)" };
   const isFiled = (m) => m.minutesStatus === "Approved";
 
-  // ── Academic-year + attendance derivation ─────────────────────────────────
-  // An AY runs Jul 1 – Jun 30; ayStartOf returns the calendar year it began in
-  // (e.g. any date Jul 2025–Jun 2026 → 2025, labelled "AY 2025–26"). A member
-  // counts as PRESENT at a meeting if they appear in present, exOfficio, or
-  // operations (this reproduces the roster's attendance counts exactly), and
-  // ABSENT if listed in absent. Counts are DERIVED from the filed meetings on
-  // demand, so selecting an AY only re-scopes the same underlying records —
-  // prior years are never overwritten or lost.
-  const ATT_PRESENT = ["present", "exOfficio", "operations"];
-  // Unnamed/placeholder seats (matches the Members view's placeholder pattern):
-  // a vacant "TBA —" seat can't hold a personal attendance record.
-  const RX_PLACEHOLDER = /^tba|^not filled|— tba|tba$/i;
-  const ayStartOf = (s) => { const d = D(s); return d.getMonth() >= 6 ? d.getFullYear() : d.getFullYear() - 1; };
-  const ayLabel = (start) => (start === "ALL" ? "All years" : `AY ${start}\u2013${String(start + 1).slice(-2)}`);
-  const currentAYStart = () => { const t = new Date(); return t.getMonth() >= 6 ? t.getFullYear() : t.getFullYear() - 1; };
-  // Filed meetings for a committee ("ALL" = every committee), optionally one AY.
-  function attMeetings(committee, ayStart) {
-    let ms = E().MEETINGS.filter(isFiled);
-    if (committee !== "ALL") ms = ms.filter((m) => m.committee === committee);
-    if (ayStart !== "ALL") ms = ms.filter((m) => ayStartOf(m.date) === ayStart);
-    return ms.sort((a, b) => a.date.localeCompare(b.date));
-  }
-  // Academic years (start) that have filed meetings for a committee, newest first.
-  const availableAYs = (committee) =>
-    [...new Set(attMeetings(committee, "ALL").map((m) => ayStartOf(m.date)))].sort((a, b) => b - a);
-  // Per-member present/absent record over a committee + AY window.
-  function deriveAttendance(committee, ayStart) {
-    const meetings = attMeetings(committee, ayStart);
-    const rows = E().MEMBERS.map((m) => {
-      const presentDates = [], absentDates = [];
-      for (const mt of meetings) {
-        if (ATT_PRESENT.some((b) => (mt[b] || []).includes(m.id))) presentDates.push(mt.date);
-        else if ((mt.absent || []).includes(m.id)) absentDates.push(mt.date);
-      }
-      const present = presentDates.length, absent = absentDates.length, tot = present + absent;
-      return { ...m, _present: present, _absent: absent, _tot: tot, _pct: tot ? present / tot : 0, _presentDates: presentDates, _absentDates: absentDates };
-    }).filter((r) => r._tot > 0 && !RX_PLACEHOLDER.test(r.name || "")).sort((a, b) => b._pct - a._pct || a.name.localeCompare(b.name));
-    return { meetings, rows };
-  }
-
   // ── Planned agenda (scheduled meetings) ───────────────────────────────────
   function plannedItems(committee, date) {
     return (window.PLANNED_AGENDA && window.PLANNED_AGENDA.itemsFor)
@@ -352,24 +279,14 @@
     grey3: "#DEDFE2", grey7: "#8A8B8E", grey11: "#58595B", ink: "#141414", paper: "#FFFFFF",
   };
 
-  // (1) Attendance trend — area + line with a dashed quorum threshold.
-  // Plots "% of voting members present" per meeting, scoped to a committee + AY.
-  function AttendanceTrend({ height = 190, compact = false, committeeId = "EEC", ayStart = "ALL" }) {
+  // (1) EEC attendance trend — area + line with a dashed quorum threshold.
+  function AttendanceTrend({ height = 190, compact = false }) {
     const e = E();
-    const c = e.committeeById[committeeId] || { quorum: 8, votingSeats: 19 };
-    const pts = attMeetings(committeeId, ayStart)
-      .map((m) => {
-        const rate = m.attendanceRate != null
-          ? m.attendanceRate
-          : (((m.present || []).length + (m.absent || []).length)
-              ? (m.present || []).length / ((m.present || []).length + (m.absent || []).length)
-              : null);
-        return rate == null ? null : { date: m.date, v: Math.round(rate * 100) };
-      })
-      .filter(Boolean);
-    if (!pts.length) return compact ? null : (
-      <div className="d-chartnote" style={{ padding: "20px 2px" }}>No filed meetings with recorded attendance for this selection.</div>
-    );
+    const c = e.committeeById["EEC"] || { quorum: 8, votingSeats: 19 };
+    const pts = e.MEETINGS.filter(isFiled).sort((a, b) => a.date.localeCompare(b.date))
+      .filter((m) => m.attendanceRate != null)
+      .map((m) => ({ date: m.date, v: Math.round(m.attendanceRate * 100) }));
+    if (!pts.length) return null;
     const quorum = Math.round((c.quorum / c.votingSeats) * 100);
     const W = 660, H = height, padL = compact ? 4 : 32, padR = compact ? 4 : 56, padT = 10, padB = compact ? 6 : 24;
     const iw = W - padL - padR, ih = H - padT - padB, n = pts.length;
@@ -380,7 +297,7 @@
     const below = pts.filter((p) => p.v < quorum).length;
     return (
       <div className="d-chart">
-        <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${committeeId === "ALL" ? "Committee" : committeeId} attendance by meeting`}>
+        <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="EEC attendance by meeting">
           <defs><linearGradient id="dAtt" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={PAL.cyan} stopOpacity="0.20" /><stop offset="100%" stopColor={PAL.cyan} stopOpacity="0.02" />
           </linearGradient></defs>
@@ -405,7 +322,7 @@
             </text>
           ) : null))}
         </svg>
-        {!compact && <div className="d-chartnote"><b>{below}</b> of {pts.length} meeting{pts.length === 1 ? "" : "s"} fell below the quorum line ({quorum}%).</div>}
+        {!compact && <div className="d-chartnote"><b>{below}</b> of {pts.length} meetings fell below quorum ({quorum}%); attendance has held at <b>100%</b> since the November faculty-development session.</div>}
       </div>
     );
   }
@@ -586,7 +503,7 @@
       ["Motions carried", motionsApproved, `of ${e.MOTIONS.length} voted`],
       ["Open action items", openActions, `${totalA} tracked total`],
       ["Tracked members", tracked, "across all bodies"],
-      ["Governing policies", e.POLICIES.filter((p) => p.kind === "policy").length, "current versions"],
+      ["Governing policies", e.POLICIES.length, "current versions"],
     ];
 
     return (
@@ -738,66 +655,6 @@
       return { past: pa, next: nx, rest: rows.filter((m) => !keep.has(m.id)) };
     }, [rows, todayStr]);
 
-    // Month groups for the jump strip (rows are newest-first).
-    const monthGroups = useMemo(() => {
-      const order = []; const map = new Map();
-      rest.forEach((m) => { const k = m.date.slice(0, 7); if (!map.has(k)) { map.set(k, []); order.push(k); } map.get(k).push(m); });
-      return order.map((k) => ({ key: k, items: map.get(k) }));
-    }, [rest]);
-    const stripMonths = monthGroups.map((g) => g.key);
-    // Split the strip into academic-year bands (Jul–Jun), oldest AY first.
-    const ayBands = (() => {
-      const byAy = new Map();
-      stripMonths.forEach((k) => {
-        const [y, mo] = k.split("-").map(Number);
-        const ayStart = mo >= 7 ? y : y - 1;
-        if (!byAy.has(ayStart)) byAy.set(ayStart, []);
-        byAy.get(ayStart).push(k);
-      });
-      return [...byAy.entries()].sort((a, b) => a[0] - b[0]).map(([ayStart, months]) => ({
-        ayStart, label: `AY ${ayStart}–${String(ayStart + 1).slice(-2)}`, months: months.sort(),
-      }));
-    })();
-    const [activeMonth, setActiveMonth] = useState(null);
-    const stripRef = useRef(null);
-    const TOPBAR_H = 56; // .topbar height in styles.css
-
-    // Scroll the window so a month's divider row sits just under the sticky strip.
-    function scrollToMonth(key) {
-      const row = document.querySelector(`tr[data-month="${key}"]`);
-      if (!row) return;
-      const stripH = stripRef.current ? stripRef.current.offsetHeight : 0;
-      const start = window.scrollY;
-      const dest = Math.max(0, start + row.getBoundingClientRect().top - TOPBAR_H - stripH - 8);
-      setActiveMonth(key);
-      const dist = dest - start;
-      if (Math.abs(dist) < 1) { window.scrollTo(0, dest); return; }
-      const dur = 340, t0 = performance.now();
-      (function step(now) {
-        const p = Math.min(1, (now - t0) / dur);
-        const ease = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
-        window.scrollTo(0, start + dist * ease);
-        if (p < 1) requestAnimationFrame(step);
-      })(t0);
-    }
-
-    // Scroll-spy: highlight the month whose divider has reached the sticky line.
-    useEffect(() => {
-      if (!stripMonths.length) return;
-      function onScroll() {
-        const stripH = stripRef.current ? stripRef.current.offsetHeight : 0;
-        const line = TOPBAR_H + stripH + 10;
-        let cur = stripMonths[0];
-        document.querySelectorAll("tr[data-month]").forEach((r) => {
-          if (r.getBoundingClientRect().top <= line) cur = r.dataset.month;
-        });
-        setActiveMonth((prev) => (prev === cur ? prev : cur));
-      }
-      onScroll();
-      window.addEventListener("scroll", onScroll, { passive: true });
-      return () => window.removeEventListener("scroll", onScroll);
-    }, [stripMonths.join(",")]);
-
     return (
       <>
         <div className="d-head"><h1>Meetings &amp; Minutes</h1><div className="lede">The two cards below jump to the most recent meeting and the next one coming up, based on today's date. Everything else is listed underneath.</div></div>
@@ -813,52 +670,28 @@
             {rest.length > 0 && (
               <>
                 <div className="d-rest-head">All meetings · {rest.length}</div>
-                {stripMonths.length > 1 && (
-                  <div className="d-month-strip" ref={stripRef}>
-                    {ayBands.map((band, bi) => (
-                      <div key={band.ayStart} className={"d-ay-band " + (bi % 2 === 0 ? "ay-a" : "ay-b")}>
-                        <span className="ay-lbl">{band.label}</span>
-                        {band.months.map((key) => {
-                          const md = D(key + "-01");
-                          const isActive = key === activeMonth;
-                          return (
-                            <button key={key} className={"d-month-chip" + (isActive ? " active" : "")} onClick={() => scrollToMonth(key)}>
-                              {md.toLocaleDateString("en-US", { month: "short" })}
-                              <span className="yr">'{String(md.getFullYear()).slice(-2)}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </div>
-                )}
                 <div className="card" style={{ padding: 0, overflow: "hidden" }}>
                   <table className="tbl">
                     <thead><tr><th style={{ paddingLeft: 16 }}>Date</th><th>Committee</th><th>Type</th><th className="num">Agenda</th><th className="num">Motions</th><th>Attendance</th><th>Status</th></tr></thead>
                     <tbody>
-                      {monthGroups.map((g) => (
-                        <React.Fragment key={g.key}>
-                          <tr data-month={g.key} className="d-month-row"><td colSpan={7}>{D(g.key + "-01").toLocaleDateString("en-US", { month: "long", year: "numeric" })}</td></tr>
-                          {g.items.map((m) => {
-                            const motions = e.MOTIONS.filter((v) => v.meetingId === m.id).length;
-                            const att = m.attendanceRate != null ? Math.round(m.attendanceRate * 100) + "%" : "—";
-                            const nItems = (m.items || []).length;
-                            const statusLabel = m.planned ? "Agenda set" : m.minutesStatus;
-                            const statusCls = m.planned ? "cyan" : minutesPill(m.minutesStatus);
-                            return (
-                              <tr key={m.id} className="row-link" onClick={() => onSelect({ type: "meeting", id: m.id })}>
-                                <td style={{ paddingLeft: 16, whiteSpace: "nowrap" }} className="mono">{fmt(m.date, "mdy")}</td>
-                                <td><CDot id={m.committee} /></td>
-                                <td style={{ maxWidth: 280 }}>{m.type.replace("Regular Scheduled Meeting", "Regular")}</td>
-                                <td className="num">{nItems || "—"}</td>
-                                <td className="num">{motions || "—"}</td>
-                                <td className="t-mono" style={{ color: "var(--grey-11)" }}>{att}</td>
-                                <td><span className={"pill " + statusCls}>{statusLabel}</span></td>
-                              </tr>
-                            );
-                          })}
-                        </React.Fragment>
-                      ))}
+                      {rest.map((m) => {
+                        const motions = e.MOTIONS.filter((v) => v.meetingId === m.id).length;
+                        const att = m.attendanceRate != null ? Math.round(m.attendanceRate * 100) + "%" : "—";
+                        const nItems = (m.items || []).length;
+                        const statusLabel = m.planned ? "Agenda set" : m.minutesStatus;
+                        const statusCls = m.planned ? "cyan" : minutesPill(m.minutesStatus);
+                        return (
+                          <tr key={m.id} className="row-link" onClick={() => onSelect({ type: "meeting", id: m.id })}>
+                            <td style={{ paddingLeft: 16, whiteSpace: "nowrap" }} className="mono">{fmt(m.date, "mdy")}</td>
+                            <td><CDot id={m.committee} /></td>
+                            <td style={{ maxWidth: 280 }}>{m.type.replace("Regular Scheduled Meeting", "Regular")}</td>
+                            <td className="num">{nItems || "—"}</td>
+                            <td className="num">{motions || "—"}</td>
+                            <td className="t-mono" style={{ color: "var(--grey-11)" }}>{att}</td>
+                            <td><span className={"pill " + statusCls}>{statusLabel}</span></td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -879,8 +712,8 @@
     const gov = md ? md.actions.filter((a) => a.kind === "governance") : [];
     const ops = md ? md.actions.filter((a) => a.kind === "operational") : [];
     const motions = e.MOTIONS.filter((v) => v.meetingId === id);
-    const hasFile = isFiled(m) && window.MOBILE_SCHEDULE.hasMinutesFile && window.MOBILE_SCHEDULE.hasMinutesFile(m.date);
-    const fileName = `EEC_Minutes_${m.date}.docx`;
+    const hasFile = isFiled(m) && window.MOBILE_SCHEDULE.hasMinutesFile && window.MOBILE_SCHEDULE.hasMinutesFile(m.committee, m.date);
+    const fileName = `${(c.short || m.committee || "EEC").replace(/[^A-Za-z0-9]/g, "")}_Minutes_${m.date}.docx`;
 
     return (
       <Drawer eyebrow={`${c.short} · ${m.type.replace("Regular Scheduled Meeting", "Regular Meeting")}`} title={fmt(m.date, "long")} onClose={onClose}>
@@ -1104,64 +937,36 @@
     );
   }
 
-  // ════════════════ ATTENDANCE (per committee + academic year) ════════════════
+  // ════════════════ ATTENDANCE (EEC heatmap) ════════════════
   function Attendance({ onSelect }) {
-    const [committee, setCommittee] = useState("EEC");
-    const [ay, setAy] = useState(currentAYStart());
-    // Default back to the current AY whenever the committee changes.
-    useEffect(() => { setAy(currentAYStart()); }, [committee]);
-
-    // AY options: always offer the current AY (so a fresh year reads as 0/0,
-    // not as missing), plus every AY that actually has filed meetings, + All.
-    const ayOpts = useMemo(() => {
-      const ays = [...new Set([currentAYStart(), ...availableAYs(committee)])].sort((a, b) => b - a);
-      return [...ays, "ALL"];
-    }, [committee]);
-
-    const { meetings, rows } = useMemo(() => deriveAttendance(committee, ay), [committee, ay]);
-    const cLabel = committee === "ALL" ? "all committees" : committee;
+    const e = E();
+    const meetings = useMemo(() => e.MEETINGS.filter(isFiled).sort((a, b) => a.date.localeCompare(b.date)), []);
+    const members = useMemo(() => e.MEMBERS.filter((m) => (m.presentCount + m.absentCount) > 0)
+      .map((m) => ({ ...m, _pct: m.presentCount / (m.presentCount + m.absentCount) }))
+      .sort((a, b) => b._pct - a._pct || a.name.localeCompare(b.name)), []);
 
     return (
       <>
-        <div className="d-head"><h1>Attendance</h1><div className="lede">Voting attendance by governance body and academic year, derived from filed minutes. The view defaults to the current academic year ({ayLabel(currentAYStart())}); switch the toggle to review any prior year — earlier records are retained, never reset. Click a name for a member's full record.</div></div>
-
-        <CommitteeFilter value={committee} onChange={setCommittee} />
-        <div className="d-toolbar">
-          <label className="chk" style={{ gap: 9 }}>Academic year
-            <select className="d-select" value={String(ay)} onChange={(ev) => setAy(ev.target.value === "ALL" ? "ALL" : Number(ev.target.value))}>
-              {ayOpts.map((a) => <option key={a} value={String(a)}>{ayLabel(a)}</option>)}
-            </select>
-          </label>
-          <div className="spacer" />
-          <span style={{ fontSize: 12, color: "var(--grey-11)" }} className="t-num">{meetings.length} meeting{meetings.length === 1 ? "" : "s"} · {rows.length} member{rows.length === 1 ? "" : "s"}</span>
-        </div>
-
+        <div className="d-head"><h1>Attendance</h1><div className="lede">EEC attendance matrix across {meetings.length} meetings with filed minutes. Each member's voting attendance is plotted by meeting; click a name for their full record.</div></div>
         <div className="card" style={{ marginBottom: 18 }}>
-          <div className="card-header"><span className="card-title">{committee === "ALL" ? "Committee" : committee} attendance rate by meeting</span><span className="card-meta">% of voting members present · {ayLabel(ay)}</span></div>
-          <AttendanceTrend height={210} committeeId={committee} ayStart={ay} />
+          <div className="card-header"><span className="card-title">Attendance rate by meeting</span><span className="card-meta">% of voting members present</span></div>
+          <AttendanceTrend height={210} />
         </div>
-
-        {meetings.length === 0 ? (
-          <div className="card" style={{ padding: "30px 22px", textAlign: "center", color: "var(--grey-11)", fontSize: 13 }}>
-            No filed {committee === "ALL" ? "" : committee + " "}meetings recorded for {ayLabel(ay)}.
-            {ay === currentAYStart() && availableAYs(committee).length > 0 && <> Use the academic-year toggle to view a prior year.</>}
-          </div>
-        ) : (
-        <>
         <div className="d-heatwrap">
           <table className="d-heat">
             <thead>
               <tr>
-                <th className="namecol">Member ({rows.length})</th>
-                {meetings.map((m) => <th key={m.id} className="dcol" title={`${committee === "ALL" ? cmt(m.committee).short + " · " : ""}${fmt(m.date, "long")}`}>{D(m.date).toLocaleDateString("en-US", { month: "numeric", day: "numeric" })}</th>)}
+                <th className="namecol">Member ({members.length})</th>
+                {meetings.map((m) => <th key={m.id} className="dcol" title={fmt(m.date, "long")}>{D(m.date).toLocaleDateString("en-US", { month: "numeric", day: "numeric" })}</th>)}
                 <th className="dcol pctcol" style={{ position: "sticky", right: 0, background: "var(--paper)" }}>%</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((m) => {
-                const pres = new Set(m._presentDates);
-                const abs = new Set(m._absentDates);
-                const pct = Math.round(m._pct * 100);
+              {members.map((m) => {
+                const pres = new Set(m.meetingsPresent || []);
+                const abs = new Set(m.meetingsAbsent || []);
+                const tot = m.presentCount + m.absentCount;
+                const pct = Math.round((m.presentCount / tot) * 100);
                 return (
                   <tr key={m.id}>
                     <td className="namecol" style={{ cursor: "pointer" }} onClick={() => onSelect({ type: "member", id: m.id })}>
@@ -1170,8 +975,9 @@
                     </td>
                     {meetings.map((mt) => {
                       const st = pres.has(mt.date) ? "p" : abs.has(mt.date) ? "a" : "-";
+                      const bg = st === "p" ? "var(--good)" : st === "a" ? "var(--bad-tint)" : "var(--grey-1)";
                       const bd = st === "a" ? "1px solid var(--bad)" : "none";
-                      return <td key={mt.id} className="cell"><div className="box" style={{ background: st === "p" ? "var(--good)" : (st === "a" ? "var(--bad-tint)" : "var(--grey-1)"), border: bd, opacity: st === "-" ? 0.5 : 1 }} /></td>;
+                      return <td key={mt.id} className="cell"><div className="box" style={{ background: st === "p" ? bg : (st === "a" ? "var(--bad-tint)" : "var(--grey-1)"), border: bd, opacity: st === "-" ? 0.5 : 1 }} /></td>;
                     })}
                     <td className="pctcol" style={{ position: "sticky", right: 0, background: "var(--paper)", color: pct >= 70 ? "var(--good)" : pct >= 40 ? "var(--warn)" : "var(--bad)" }}>{pct}</td>
                   </tr>
@@ -1185,8 +991,6 @@
           <span className="it"><span className="sw" style={{ background: "var(--bad-tint)", border: "1px solid var(--bad)" }} /> Absent</span>
           <span className="it"><span className="sw" style={{ background: "var(--grey-1)", opacity: 0.6 }} /> Not on roster / no record</span>
         </div>
-        </>
-        )}
       </>
     );
   }
@@ -1359,7 +1163,7 @@
   // ════════════════ POLICIES ════════════════
   function Policies({ onSelect }) {
     const e = E();
-    const rows = e.POLICIES.filter((p) => p.kind === "policy").sort((a, b) => (b.effectiveDate || "").localeCompare(a.effectiveDate || ""));
+    const rows = [...e.POLICIES].sort((a, b) => (b.effectiveDate || "").localeCompare(a.effectiveDate || ""));
     return (
       <>
         <div className="d-head"><h1>Policies</h1><div className="lede">Governed documents with current versions, approval lineage, and source meetings.</div></div>
@@ -1441,7 +1245,7 @@
       motions: e.MOTIONS.length,
       actions: e.ACTIONS.filter((a) => a.status !== "Completed").length,
       members: e.MEMBERS.filter((m) => m.tracked).length,
-      policies: e.POLICIES.filter((p) => p.kind === "policy").length,
+      policies: e.POLICIES.length,
       reviews: e.REVIEWS.length,
     };
 
