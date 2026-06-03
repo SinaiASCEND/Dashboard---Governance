@@ -462,6 +462,36 @@ const MOBILE_CSS = `
   font-size: 11.5px; color: var(--grey-11); margin: 0; line-height: 1.5;
 }
 
+/* Sticky month-jump strip */
+.m-month-strip {
+  position: sticky; top: 0; z-index: 6;
+  display: flex; gap: 6px;
+  margin: 0 -18px 4px;          /* full-bleed past the m-body side padding */
+  padding: 8px 18px;
+  overflow-x: auto;
+  background: rgba(245,246,247,0.92);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border-bottom: 0.5px solid var(--grey-3);
+  -webkit-overflow-scrolling: touch;
+}
+.m-month-strip::-webkit-scrollbar { height: 0; }
+.m-month-chip {
+  flex: 0 0 auto;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--grey-3);
+  background: var(--paper);
+  color: var(--grey-11);
+  font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+  font-family: var(--sans);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.m-month-chip .yr { opacity: 0.55; margin-left: 3px; }
+.m-month-chip.active .yr { opacity: 0.85; }
+
 /* Slide transitions */
 .m-screens-stack { position: absolute; inset: 44px 0 0 0; }
 .m-page {
@@ -518,26 +548,9 @@ function shortAgenda(item) {
 }
 
 // ─── Meeting/entry helper ─────────────────────────────────────────────────────
-function plannedFor(committee, date) {
-  return (window.PLANNED_AGENDA && window.PLANNED_AGENDA.itemsFor)
-    ? window.PLANNED_AGENDA.itemsFor(committee, date)
-    : [];
-}
-
 function entryToMeeting(entry) {
-  if (entry.kind === "filed" && entry.m) {
-    const m = entry.m;
-    // A "Scheduled"-status record is a not-yet-held meeting: attach planned agenda
-    // and treat it as scheduled (no minutes/motions/attendance yet).
-    if (m.minutesStatus === "Scheduled") {
-      const planned = plannedFor(m.committee, m.date);
-      const items = (m.items && m.items.length) ? m.items : planned;
-      return { ...m, items, scheduled: true, planned: items.length > 0 };
-    }
-    return { ...m, scheduled: false };
-  }
-  // Synthesize a stub for scheduled-only entries, attaching any planned agenda.
-  const planned = plannedFor(entry.committee, entry.date);
+  if (entry.kind === "filed" && entry.m) return { ...entry.m, scheduled: false };
+  // Synthesize a stub for scheduled-only entries.
   return {
     id: `scheduled:${entry.committee}:${entry.date}`,
     date: entry.date,
@@ -546,12 +559,11 @@ function entryToMeeting(entry) {
     time: entry.time || null,
     modality: null,
     presidingOfficer: null,
-    items: planned, topics: [],
+    items: [], topics: [],
     present: [], absent: [], exOfficio: [], guests: [], recused: [],
     attendanceRate: null,
     minutesStatus: "Pending intake",
     scheduled: true,
-    planned: planned.length > 0,
   };
 }
 
@@ -821,6 +833,9 @@ function CommitteeScreen({ committeeId, onPick }) {
   const entries = window.MOBILE_SCHEDULE.committeeMeetings(committeeId);
   const bodyRef = React.useRef(null);
 
+  const stripRef = React.useRef(null);
+  const [activeMonth, setActiveMonth] = useStateMA(null);
+
   // Group by month
   const grouped = useMemoMA(() => {
     const out = new Map();
@@ -832,20 +847,53 @@ function CommitteeScreen({ committeeId, onPick }) {
     return [...out.entries()];
   }, [committeeId]);
 
-  // Open scrolled to the current month (or closest upcoming month if today has no entries).
-  useEffectMA(() => {
-    if (!bodyRef.current) return;
+  // Months for the jump strip, chronological (oldest → newest).
+  const stripMonths = useMemoMA(() => grouped.map(([m]) => m).sort(), [grouped]);
+
+  // The month to open on: the current month, else the nearest upcoming one.
+  const anchorMonth = useMemoMA(() => {
     const todayKey = window.MS_DATE.ymdLocal(new Date()).slice(0, 7);
-    const groups = [...bodyRef.current.querySelectorAll("[data-month]")];
-    let target = groups.find(g => g.dataset.month === todayKey);
-    if (!target) {
-      // groups are in DOM order = descending. Walk ascending to find first >= today.
-      target = [...groups].reverse().find(g => g.dataset.month >= todayKey);
-    }
-    if (target) {
-      bodyRef.current.scrollTop = target.offsetTop - bodyRef.current.offsetTop - 4;
-    }
+    if (stripMonths.includes(todayKey)) return todayKey;
+    const upcoming = stripMonths.filter(m => m >= todayKey);
+    return upcoming.length ? upcoming[0] : (stripMonths[stripMonths.length - 1] || null);
+  }, [stripMonths]);
+
+  // Scroll the list so a given month sits just under the sticky strip.
+  function scrollToMonth(key, smooth) {
+    const body = bodyRef.current;
+    if (!body || !key) return;
+    const target = body.querySelector(`[data-month="${key}"]`);
+    if (!target) return;
+    const stripH = stripRef.current ? stripRef.current.offsetHeight : 0;
+    const top = target.offsetTop - body.offsetTop - stripH - 6;
+    body.scrollTo({ top: Math.max(0, top), behavior: smooth ? "smooth" : "auto" });
+  }
+
+  // Open scrolled to the anchor month.
+  useEffectMA(() => {
+    setActiveMonth(anchorMonth);
+    scrollToMonth(anchorMonth, false);
   }, [committeeId, grouped.length]);
+
+  // Keep the active chip centered in the strip as it changes.
+  useEffectMA(() => {
+    if (!stripRef.current || !activeMonth) return;
+    const chip = stripRef.current.querySelector(`[data-chip="${activeMonth}"]`);
+    if (chip) chip.scrollIntoView({ inline: "center", block: "nearest" });
+  }, [activeMonth]);
+
+  // Scroll-spy: highlight the month currently sitting at the top of the list.
+  function onBodyScroll() {
+    const body = bodyRef.current;
+    if (!body || !stripMonths.length) return;
+    const stripH = stripRef.current ? stripRef.current.offsetHeight : 0;
+    let current = null;
+    body.querySelectorAll("[data-month]").forEach(g => {
+      const top = g.offsetTop - body.offsetTop - body.scrollTop - stripH;
+      if (top <= 12) current = g.dataset.month; // last group whose header has passed the strip
+    });
+    if (current && current !== activeMonth) setActiveMonth(current);
+  }
 
   const c = getCommittee(committeeId);
   const headerInfo = committeeId === "OCA"
@@ -855,7 +903,7 @@ function CommitteeScreen({ committeeId, onPick }) {
   const filedCount = entries.filter(e => e.kind === "filed").length;
 
   return (
-    <div className="m-body" ref={bodyRef}>
+    <div className="m-body" ref={bodyRef} onScroll={onBodyScroll}>
       <div className="m-section-head" style={{ padding: "10px 4px 12px" }}>
         <div className="eyebrow">{headerInfo.eyebrow}</div>
         <h2>{headerInfo.title}</h2>
@@ -870,6 +918,27 @@ function CommitteeScreen({ committeeId, onPick }) {
           </div>
         )}
       </div>
+
+      {stripMonths.length > 1 && (
+        <div className="m-month-strip" ref={stripRef}>
+          {stripMonths.map(key => {
+            const md = window.MS_DATE.parseLocal(key + "-01");
+            const isActive = key === activeMonth;
+            return (
+              <button
+                key={key}
+                data-chip={key}
+                className={"m-month-chip" + (isActive ? " active" : "")}
+                style={isActive ? { background: c.deep, borderColor: c.deep, color: "#fff" } : null}
+                onClick={() => { setActiveMonth(key); scrollToMonth(key, true); }}
+              >
+                {md.toLocaleDateString("en-US", { month: "short" })}
+                <span className="yr">'{String(md.getFullYear()).slice(-2)}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {entries.length === 0 && (
         <div className="m-empty">
@@ -916,12 +985,7 @@ function MeetingRow({ entry, committee, onPick }) {
   const future = d >= today;
   const isFiled = entry.kind === "filed";
   const m = entry.m; // only present for filed entries
-  // Not-yet-held = a synthesized scheduled stub, or a "Scheduled"-status filed record.
-  const unheld = !isFiled || (m && m.minutesStatus === "Scheduled");
-  const heldFiled = isFiled && !unheld;
-  const planned = unheld ? plannedFor(isFiled ? m.committee : entry.committee, isFiled ? m.date : entry.date) : [];
-  const hasPlanned = planned.length > 0;
-  const items = heldFiled ? (m.items || []).slice(0, 3) : [];
+  const items = isFiled ? (m.items || []).slice(0, 3) : [];
 
   return (
     <button className="m-meet-row"
@@ -940,26 +1004,19 @@ function MeetingRow({ entry, committee, onPick }) {
               : (entry.session || entry.time || "Scheduled")}
           </span>
           <span className={"status" + (future ? " future" : "")}>
-            {hasPlanned ? "Agenda set" : (heldFiled ? m.minutesStatus : (future ? "Scheduled" : "Pending"))}
+            {isFiled ? m.minutesStatus : (future ? "Scheduled" : "Pending")}
           </span>
         </div>
-        {heldFiled && items.length > 0 ? (
+        {isFiled && items.length > 0 ? (
           <ul className="agenda">
             {items.map((it, i) => <li key={i}>{shortAgenda(it)}</li>)}
             {m.items && m.items.length > 3 && (
               <li className="more">+{m.items.length - 3} more agenda items</li>
             )}
           </ul>
-        ) : heldFiled ? (
+        ) : isFiled ? (
           <ul className="agenda">
             {(m.topics || []).slice(0, 3).map((t, i) => <li key={i}>{t}</li>)}
-          </ul>
-        ) : hasPlanned ? (
-          <ul className="agenda">
-            {planned.slice(0, 3).map((it, i) => <li key={i}>{shortAgenda(it)}</li>)}
-            {planned.length > 3 && (
-              <li className="more">+{planned.length - 3} more planned item{planned.length - 3 === 1 ? "" : "s"}</li>
-            )}
           </ul>
         ) : (
           <div style={{
@@ -985,7 +1042,7 @@ function MeetingScreen({ entry, onPick }) {
   const hasFile = !m.scheduled && window.MOBILE_SCHEDULE.hasMinutesFile(m.date);
 
   const buttons = [
-    { kind: "summary",     label: "Meeting Summary",          count: m.scheduled ? ((m.items?.length || 0) || null) : (m.items?.length || 0), sub: m.scheduled ? ((m.items?.length || 0) ? "planned items" : "not circulated") : "agenda items", color: "var(--brand-violet)", disabled: m.scheduled && !(m.items && m.items.length) },
+    { kind: "summary",     label: "Meeting Summary",          count: m.scheduled ? null : (m.items?.length || 0), sub: m.scheduled ? "not circulated" : "agenda items", color: "var(--brand-violet)", disabled: m.scheduled },
     { kind: "governance",  label: "Governance Action Plans",   count: m.scheduled ? null : govActions.length, sub: m.scheduled ? "pending" : "plans", color: "var(--brand-cyan)",  disabled: m.scheduled },
     { kind: "operational", label: "Operational Action Plans",  count: m.scheduled ? null : opActions.length,  sub: m.scheduled ? "pending" : "plans", color: "var(--good)",        disabled: m.scheduled },
     { kind: "download",    label: hasFile ? "Download Minutes" : "Minutes Unavailable", count: null, sub: hasFile ? ".docx" : (m.scheduled ? "pending intake" : "not on file"), color: hasFile ? "var(--brand-magenta)" : "var(--grey-5)", disabled: !hasFile },
@@ -1008,7 +1065,7 @@ function MeetingScreen({ entry, onPick }) {
             display: "flex", alignItems: "center", gap: 8,
           }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
-            {m.planned ? "Scheduled — planned agenda below (minutes not yet filed)" : "Scheduled — minutes not yet filed"}
+            Scheduled — minutes not yet filed
           </div>
         )}
         <div className="meta-grid">
@@ -1070,38 +1127,6 @@ function MeetingScreen({ entry, onPick }) {
         ))}
       </div>
 
-      {/* Planned agenda preview (scheduled meetings with items from the tracker) */}
-      {m.scheduled && m.items && m.items.length > 0 && (
-        <div style={{ background: "var(--paper)", borderRadius: 12, padding: "12px 14px", marginBottom: 8, boxShadow: "0 1px 2px rgba(20,20,20,0.04), 0 0 0 1px rgba(20,20,20,0.06)" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-            <div style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: c.deep, fontWeight: 700 }}>
-              Planned agenda
-            </div>
-            <div style={{ fontSize: 10.5, color: "var(--grey-7)", fontFamily: "var(--mono)" }}>
-              {m.items.length} item{m.items.length === 1 ? "" : "s"}
-            </div>
-          </div>
-          <ol style={{ margin: 0, padding: 0, listStyle: "none" }}>
-            {m.items.map((it, i) => (
-              <li key={i} style={{ display: "flex", gap: 9, padding: "7px 0", borderTop: i ? "1px solid var(--grey-1)" : 0, alignItems: "flex-start" }}>
-                <span style={{ flex: "0 0 auto", fontFamily: "var(--mono)", fontSize: 11, color: c.deep, fontWeight: 700, marginTop: 1 }}>{it.n || i + 1}</span>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ fontSize: 12.5, color: "var(--ink)", lineHeight: 1.35 }}>{it.title}</span>
-                  {(it.category || it.owner || (it.subitems && it.subitems.length)) && (
-                    <span style={{ display: "block", fontSize: 10.5, color: "var(--grey-11)", marginTop: 2 }}>
-                      {[it.category, it.owner && `owner: ${it.owner}`, it.subitems && it.subitems.length && `${it.subitems.length} sub-items`].filter(Boolean).join(" · ")}
-                    </span>
-                  )}
-                </span>
-              </li>
-            ))}
-          </ol>
-          <div style={{ fontSize: 10.5, color: "var(--grey-7)", marginTop: 8, fontStyle: "italic" }}>
-            Open <strong style={{ fontStyle: "normal", color: c.deep }}>Meeting Summary</strong> for presenters, guests, and readiness.
-          </div>
-        </div>
-      )}
-
       {/* Topics chips */}
       {m.topics && m.topics.length > 0 && (
         <div style={{ background: "var(--paper)", borderRadius: 12, padding: "12px 14px", marginBottom: 8, boxShadow: "0 1px 2px rgba(20,20,20,0.04), 0 0 0 1px rgba(20,20,20,0.06)" }}>
@@ -1137,29 +1162,16 @@ function DetailScreen({ entry, kind, onItem }) {
 
 function SummaryDetail({ m, c, onItem }) {
   const items = m.items || [];
-  const isPlanned = !!m.scheduled;
-  const motions = isPlanned ? [] : window.EEC.MOTIONS.filter(v => v.meetingId === m.id);
+  const motions = window.EEC.MOTIONS.filter(v => v.meetingId === m.id);
   return (
     <div className="m-body">
       <div className="m-section-head">
         <div className="eyebrow" style={{ color: c.deep }}>{c.short} · {fmtDate(m.date, "medium")}</div>
-        <h2>{isPlanned ? "Planned Agenda" : "Meeting Summary"}</h2>
+        <h2>Meeting Summary</h2>
         <div style={{ fontSize: 12, color: "var(--grey-11)", marginTop: 6, lineHeight: 1.5 }}>
-          {isPlanned
-            ? `${items.length} planned agenda item${items.length === 1 ? "" : "s"} · this meeting hasn't occurred yet`
-            : `${items.length} agenda item${items.length === 1 ? "" : "s"} · ${motions.length} motion${motions.length === 1 ? "" : "s"} voted · ${m.present?.length || 0} voting members present`}
+          {items.length} agenda item{items.length === 1 ? "" : "s"} · {motions.length} motion{motions.length === 1 ? "" : "s"} voted · {m.present?.length || 0} voting members present
         </div>
       </div>
-
-      {isPlanned && (
-        <div style={{
-          padding: "8px 12px", marginBottom: 10, borderRadius: 8,
-          background: "var(--brand-cyan-tint)", color: "var(--brand-cyan-deep)",
-          fontSize: 11, lineHeight: 1.45,
-        }}>
-          Drawn from the Agenda Tracker. Items, presenters, and guests may change before the meeting; minutes are filed afterward.
-        </div>
-      )}
 
       {items.length === 0 && (
         <div className="m-empty">
@@ -1168,11 +1180,7 @@ function SummaryDetail({ m, c, onItem }) {
         </div>
       )}
 
-      {items.map((it, i) =>
-        isPlanned
-          ? <AgendaItem key={i} item={it} />
-          : <AgendaItem key={i} item={it} onClick={() => onItem && onItem("agenda-item", { meetingId: m.id, idx: it.idx })} />
-      )}
+      {items.map((it, i) => <AgendaItem key={i} item={it} onClick={() => onItem && onItem("agenda-item", { meetingId: m.id, idx: it.idx })} />)}
     </div>
   );
 }
@@ -1189,21 +1197,19 @@ function AgendaItem({ item, onClick }) {
   return (
     <button className="m-agenda-item"
             onClick={onClick}
+            disabled={!onClick}
             style={{
               display: "block", textAlign: "left", border: 0,
               width: "100%", cursor: onClick ? "pointer" : "default",
-              fontFamily: "inherit", background: "var(--paper)", color: "inherit",
+              fontFamily: "inherit",
             }}>
       <div className="top">
-        {(item.idx || item.n) && <span className="idx">§{item.idx || item.n}</span>}
+        {item.idx && <span className="idx">§{item.idx}</span>}
         {cat && <span className="cat" style={catStyle}>{cat}</span>}
         {item.lcme && item.lcme.length > 0 && (
           <span style={{ fontSize: 9.5, color: "var(--grey-7)", fontFamily: "var(--mono)", marginLeft: "auto" }}>
             LCME {item.lcme.join(", ")}
           </span>
-        )}
-        {item.planned && /YES/i.test(item.ready || "") && (
-          <span style={{ marginLeft: "auto", fontSize: 9, fontWeight: 700, letterSpacing: "0.08em", color: "#176D3B", background: "var(--good-tint)", padding: "2px 7px", borderRadius: 999 }}>READY</span>
         )}
       </div>
       <div className="title" style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
@@ -1214,23 +1220,6 @@ function AgendaItem({ item, onClick }) {
           </svg>
         )}
       </div>
-      {item.subitems && item.subitems.length > 0 && (
-        <ul style={{ margin: "7px 0 0", padding: 0, listStyle: "none", display: "grid", gap: 3 }}>
-          {item.subitems.map((s, i) => (
-            <li key={i} style={{ position: "relative", paddingLeft: 15, fontSize: 11, color: "var(--ink-2)", lineHeight: 1.45 }}>
-              <span style={{ position: "absolute", left: 3, top: 0, color: "var(--grey-7)" }}>·</span>{s}
-            </li>
-          ))}
-        </ul>
-      )}
-      {item.planned && (item.presenter || item.owner || item.guests || item.goesToEEC) && (
-        <div style={{ fontSize: 11, color: "var(--ink-2)", marginTop: 7, lineHeight: 1.5 }}>
-          {item.presenter && <div><span style={{ color: "var(--grey-7)" }}>Presenter: </span>{item.presenter}</div>}
-          {item.owner && <div><span style={{ color: "var(--grey-7)" }}>Subcommittee owner: </span>{item.owner}</div>}
-          {item.guests && <div><span style={{ color: "var(--grey-7)" }}>Guests: </span>{item.guests}</div>}
-          {item.goesToEEC && <div><span style={{ color: "var(--grey-7)" }}>Feeds EEC: </span>{fmtDate(item.goesToEEC, "medium")}</div>}
-        </div>
-      )}
       {item.outcome && (
         <div className="outcome" style={{
           display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",

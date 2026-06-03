@@ -172,6 +172,46 @@
   const cmt = (id) => E().committeeById[id] || { short: id, name: id, color: "var(--grey-7)", deep: "var(--grey-11)", tint: "var(--grey-1)" };
   const isFiled = (m) => m.minutesStatus === "Approved";
 
+  // ── Academic-year + attendance derivation ─────────────────────────────────
+  // An AY runs Jul 1 – Jun 30; ayStartOf returns the calendar year it began in
+  // (e.g. any date Jul 2025–Jun 2026 → 2025, labelled "AY 2025–26"). A member
+  // counts as PRESENT at a meeting if they appear in present, exOfficio, or
+  // operations (this reproduces the roster's attendance counts exactly), and
+  // ABSENT if listed in absent. Counts are DERIVED from the filed meetings on
+  // demand, so selecting an AY only re-scopes the same underlying records —
+  // prior years are never overwritten or lost.
+  const ATT_PRESENT = ["present", "exOfficio", "operations"];
+  // Unnamed/placeholder seats (matches the Members view's placeholder pattern):
+  // a vacant "TBA —" seat can't hold a personal attendance record.
+  const RX_PLACEHOLDER = /^tba|^not filled|— tba|tba$/i;
+  const ayStartOf = (s) => { const d = D(s); return d.getMonth() >= 6 ? d.getFullYear() : d.getFullYear() - 1; };
+  const ayLabel = (start) => (start === "ALL" ? "All years" : `AY ${start}\u2013${String(start + 1).slice(-2)}`);
+  const currentAYStart = () => { const t = new Date(); return t.getMonth() >= 6 ? t.getFullYear() : t.getFullYear() - 1; };
+  // Filed meetings for a committee ("ALL" = every committee), optionally one AY.
+  function attMeetings(committee, ayStart) {
+    let ms = E().MEETINGS.filter(isFiled);
+    if (committee !== "ALL") ms = ms.filter((m) => m.committee === committee);
+    if (ayStart !== "ALL") ms = ms.filter((m) => ayStartOf(m.date) === ayStart);
+    return ms.sort((a, b) => a.date.localeCompare(b.date));
+  }
+  // Academic years (start) that have filed meetings for a committee, newest first.
+  const availableAYs = (committee) =>
+    [...new Set(attMeetings(committee, "ALL").map((m) => ayStartOf(m.date)))].sort((a, b) => b - a);
+  // Per-member present/absent record over a committee + AY window.
+  function deriveAttendance(committee, ayStart) {
+    const meetings = attMeetings(committee, ayStart);
+    const rows = E().MEMBERS.map((m) => {
+      const presentDates = [], absentDates = [];
+      for (const mt of meetings) {
+        if (ATT_PRESENT.some((b) => (mt[b] || []).includes(m.id))) presentDates.push(mt.date);
+        else if ((mt.absent || []).includes(m.id)) absentDates.push(mt.date);
+      }
+      const present = presentDates.length, absent = absentDates.length, tot = present + absent;
+      return { ...m, _present: present, _absent: absent, _tot: tot, _pct: tot ? present / tot : 0, _presentDates: presentDates, _absentDates: absentDates };
+    }).filter((r) => r._tot > 0 && !RX_PLACEHOLDER.test(r.name || "")).sort((a, b) => b._pct - a._pct || a.name.localeCompare(b.name));
+    return { meetings, rows };
+  }
+
   // ── Planned agenda (scheduled meetings) ───────────────────────────────────
   function plannedItems(committee, date) {
     return (window.PLANNED_AGENDA && window.PLANNED_AGENDA.itemsFor)
@@ -279,14 +319,24 @@
     grey3: "#DEDFE2", grey7: "#8A8B8E", grey11: "#58595B", ink: "#141414", paper: "#FFFFFF",
   };
 
-  // (1) EEC attendance trend — area + line with a dashed quorum threshold.
-  function AttendanceTrend({ height = 190, compact = false }) {
+  // (1) Attendance trend — area + line with a dashed quorum threshold.
+  // Plots "% of voting members present" per meeting, scoped to a committee + AY.
+  function AttendanceTrend({ height = 190, compact = false, committeeId = "EEC", ayStart = "ALL" }) {
     const e = E();
-    const c = e.committeeById["EEC"] || { quorum: 8, votingSeats: 19 };
-    const pts = e.MEETINGS.filter(isFiled).sort((a, b) => a.date.localeCompare(b.date))
-      .filter((m) => m.attendanceRate != null)
-      .map((m) => ({ date: m.date, v: Math.round(m.attendanceRate * 100) }));
-    if (!pts.length) return null;
+    const c = e.committeeById[committeeId] || { quorum: 8, votingSeats: 19 };
+    const pts = attMeetings(committeeId, ayStart)
+      .map((m) => {
+        const rate = m.attendanceRate != null
+          ? m.attendanceRate
+          : (((m.present || []).length + (m.absent || []).length)
+              ? (m.present || []).length / ((m.present || []).length + (m.absent || []).length)
+              : null);
+        return rate == null ? null : { date: m.date, v: Math.round(rate * 100) };
+      })
+      .filter(Boolean);
+    if (!pts.length) return compact ? null : (
+      <div className="d-chartnote" style={{ padding: "20px 2px" }}>No filed meetings with recorded attendance for this selection.</div>
+    );
     const quorum = Math.round((c.quorum / c.votingSeats) * 100);
     const W = 660, H = height, padL = compact ? 4 : 32, padR = compact ? 4 : 56, padT = 10, padB = compact ? 6 : 24;
     const iw = W - padL - padR, ih = H - padT - padB, n = pts.length;
@@ -297,7 +347,7 @@
     const below = pts.filter((p) => p.v < quorum).length;
     return (
       <div className="d-chart">
-        <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="EEC attendance by meeting">
+        <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${committeeId === "ALL" ? "Committee" : committeeId} attendance by meeting`}>
           <defs><linearGradient id="dAtt" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={PAL.cyan} stopOpacity="0.20" /><stop offset="100%" stopColor={PAL.cyan} stopOpacity="0.02" />
           </linearGradient></defs>
@@ -322,7 +372,7 @@
             </text>
           ) : null))}
         </svg>
-        {!compact && <div className="d-chartnote"><b>{below}</b> of {pts.length} meetings fell below quorum ({quorum}%); attendance has held at <b>100%</b> since the November faculty-development session.</div>}
+        {!compact && <div className="d-chartnote"><b>{below}</b> of {pts.length} meeting{pts.length === 1 ? "" : "s"} fell below the quorum line ({quorum}%).</div>}
       </div>
     );
   }
@@ -503,7 +553,7 @@
       ["Motions carried", motionsApproved, `of ${e.MOTIONS.length} voted`],
       ["Open action items", openActions, `${totalA} tracked total`],
       ["Tracked members", tracked, "across all bodies"],
-      ["Governing policies", e.POLICIES.length, "current versions"],
+      ["Governing policies", e.POLICIES.filter((p) => p.kind === "policy").length, "current versions"],
     ];
 
     return (
@@ -937,36 +987,64 @@
     );
   }
 
-  // ════════════════ ATTENDANCE (EEC heatmap) ════════════════
+  // ════════════════ ATTENDANCE (per committee + academic year) ════════════════
   function Attendance({ onSelect }) {
-    const e = E();
-    const meetings = useMemo(() => e.MEETINGS.filter(isFiled).sort((a, b) => a.date.localeCompare(b.date)), []);
-    const members = useMemo(() => e.MEMBERS.filter((m) => (m.presentCount + m.absentCount) > 0)
-      .map((m) => ({ ...m, _pct: m.presentCount / (m.presentCount + m.absentCount) }))
-      .sort((a, b) => b._pct - a._pct || a.name.localeCompare(b.name)), []);
+    const [committee, setCommittee] = useState("EEC");
+    const [ay, setAy] = useState(currentAYStart());
+    // Default back to the current AY whenever the committee changes.
+    useEffect(() => { setAy(currentAYStart()); }, [committee]);
+
+    // AY options: always offer the current AY (so a fresh year reads as 0/0,
+    // not as missing), plus every AY that actually has filed meetings, + All.
+    const ayOpts = useMemo(() => {
+      const ays = [...new Set([currentAYStart(), ...availableAYs(committee)])].sort((a, b) => b - a);
+      return [...ays, "ALL"];
+    }, [committee]);
+
+    const { meetings, rows } = useMemo(() => deriveAttendance(committee, ay), [committee, ay]);
+    const cLabel = committee === "ALL" ? "all committees" : committee;
 
     return (
       <>
-        <div className="d-head"><h1>Attendance</h1><div className="lede">EEC attendance matrix across {meetings.length} meetings with filed minutes. Each member's voting attendance is plotted by meeting; click a name for their full record.</div></div>
-        <div className="card" style={{ marginBottom: 18 }}>
-          <div className="card-header"><span className="card-title">Attendance rate by meeting</span><span className="card-meta">% of voting members present</span></div>
-          <AttendanceTrend height={210} />
+        <div className="d-head"><h1>Attendance</h1><div className="lede">Voting attendance by governance body and academic year, derived from filed minutes. The view defaults to the current academic year ({ayLabel(currentAYStart())}); switch the toggle to review any prior year — earlier records are retained, never reset. Click a name for a member's full record.</div></div>
+
+        <CommitteeFilter value={committee} onChange={setCommittee} />
+        <div className="d-toolbar">
+          <label className="chk" style={{ gap: 9 }}>Academic year
+            <select className="d-select" value={String(ay)} onChange={(ev) => setAy(ev.target.value === "ALL" ? "ALL" : Number(ev.target.value))}>
+              {ayOpts.map((a) => <option key={a} value={String(a)}>{ayLabel(a)}</option>)}
+            </select>
+          </label>
+          <div className="spacer" />
+          <span style={{ fontSize: 12, color: "var(--grey-11)" }} className="t-num">{meetings.length} meeting{meetings.length === 1 ? "" : "s"} · {rows.length} member{rows.length === 1 ? "" : "s"}</span>
         </div>
+
+        <div className="card" style={{ marginBottom: 18 }}>
+          <div className="card-header"><span className="card-title">{committee === "ALL" ? "Committee" : committee} attendance rate by meeting</span><span className="card-meta">% of voting members present · {ayLabel(ay)}</span></div>
+          <AttendanceTrend height={210} committeeId={committee} ayStart={ay} />
+        </div>
+
+        {meetings.length === 0 ? (
+          <div className="card" style={{ padding: "30px 22px", textAlign: "center", color: "var(--grey-11)", fontSize: 13 }}>
+            No filed {committee === "ALL" ? "" : committee + " "}meetings recorded for {ayLabel(ay)}.
+            {ay === currentAYStart() && availableAYs(committee).length > 0 && <> Use the academic-year toggle to view a prior year.</>}
+          </div>
+        ) : (
+        <>
         <div className="d-heatwrap">
           <table className="d-heat">
             <thead>
               <tr>
-                <th className="namecol">Member ({members.length})</th>
-                {meetings.map((m) => <th key={m.id} className="dcol" title={fmt(m.date, "long")}>{D(m.date).toLocaleDateString("en-US", { month: "numeric", day: "numeric" })}</th>)}
+                <th className="namecol">Member ({rows.length})</th>
+                {meetings.map((m) => <th key={m.id} className="dcol" title={`${committee === "ALL" ? cmt(m.committee).short + " · " : ""}${fmt(m.date, "long")}`}>{D(m.date).toLocaleDateString("en-US", { month: "numeric", day: "numeric" })}</th>)}
                 <th className="dcol pctcol" style={{ position: "sticky", right: 0, background: "var(--paper)" }}>%</th>
               </tr>
             </thead>
             <tbody>
-              {members.map((m) => {
-                const pres = new Set(m.meetingsPresent || []);
-                const abs = new Set(m.meetingsAbsent || []);
-                const tot = m.presentCount + m.absentCount;
-                const pct = Math.round((m.presentCount / tot) * 100);
+              {rows.map((m) => {
+                const pres = new Set(m._presentDates);
+                const abs = new Set(m._absentDates);
+                const pct = Math.round(m._pct * 100);
                 return (
                   <tr key={m.id}>
                     <td className="namecol" style={{ cursor: "pointer" }} onClick={() => onSelect({ type: "member", id: m.id })}>
@@ -975,9 +1053,8 @@
                     </td>
                     {meetings.map((mt) => {
                       const st = pres.has(mt.date) ? "p" : abs.has(mt.date) ? "a" : "-";
-                      const bg = st === "p" ? "var(--good)" : st === "a" ? "var(--bad-tint)" : "var(--grey-1)";
                       const bd = st === "a" ? "1px solid var(--bad)" : "none";
-                      return <td key={mt.id} className="cell"><div className="box" style={{ background: st === "p" ? bg : (st === "a" ? "var(--bad-tint)" : "var(--grey-1)"), border: bd, opacity: st === "-" ? 0.5 : 1 }} /></td>;
+                      return <td key={mt.id} className="cell"><div className="box" style={{ background: st === "p" ? "var(--good)" : (st === "a" ? "var(--bad-tint)" : "var(--grey-1)"), border: bd, opacity: st === "-" ? 0.5 : 1 }} /></td>;
                     })}
                     <td className="pctcol" style={{ position: "sticky", right: 0, background: "var(--paper)", color: pct >= 70 ? "var(--good)" : pct >= 40 ? "var(--warn)" : "var(--bad)" }}>{pct}</td>
                   </tr>
@@ -991,6 +1068,8 @@
           <span className="it"><span className="sw" style={{ background: "var(--bad-tint)", border: "1px solid var(--bad)" }} /> Absent</span>
           <span className="it"><span className="sw" style={{ background: "var(--grey-1)", opacity: 0.6 }} /> Not on roster / no record</span>
         </div>
+        </>
+        )}
       </>
     );
   }
@@ -1163,7 +1242,7 @@
   // ════════════════ POLICIES ════════════════
   function Policies({ onSelect }) {
     const e = E();
-    const rows = [...e.POLICIES].sort((a, b) => (b.effectiveDate || "").localeCompare(a.effectiveDate || ""));
+    const rows = e.POLICIES.filter((p) => p.kind === "policy").sort((a, b) => (b.effectiveDate || "").localeCompare(a.effectiveDate || ""));
     return (
       <>
         <div className="d-head"><h1>Policies</h1><div className="lede">Governed documents with current versions, approval lineage, and source meetings.</div></div>
@@ -1245,7 +1324,7 @@
       motions: e.MOTIONS.length,
       actions: e.ACTIONS.filter((a) => a.status !== "Completed").length,
       members: e.MEMBERS.filter((m) => m.tracked).length,
-      policies: e.POLICIES.length,
+      policies: e.POLICIES.filter((p) => p.kind === "policy").length,
       reviews: e.REVIEWS.length,
     };
 

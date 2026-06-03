@@ -373,7 +373,6 @@ const SectionIcon = ({ name, size = 18 }) => {
     case "action-plans":  return <svg {...p}><rect x="4" y="4" width="16" height="16" rx="2"/><path d="m8 12 2.5 2.5L16 9"/></svg>;
     case "motions":    return <svg {...p}><path d="m14 4 6 6"/><path d="m11 7 6 6-2 2-6-6z"/><path d="m9 9-6 6 2 2 6-6"/><path d="M14 21h8"/></svg>;
     case "members":    return <svg {...p}><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5"/><path d="M14 20c0-2 2-4 5-4"/></svg>;
-    case "membership": return <svg {...p}><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5"/><path d="M14 20c0-2 2-4 5-4"/></svg>;
     case "policies":   return <svg {...p}><path d="M4 5c0-1 1-2 2-2h13v17H6c-1 0-2 .5-2 2"/><path d="M4 5v17"/></svg>;
     case "reviews":
     case "review-full":
@@ -389,15 +388,10 @@ function ExploreList({ onPick }) {
   const trackerCount = window.EEC.ACTIONS.filter(a => a.kind === "tracker").length;
   const phaseCount = window.EEC.REVIEWS.filter(r => /phase/i.test(r.title)).length;
 
-  const memberCount = window.ROSTERS
-    ? window.ROSTERS.allMembers().length
-    : 0;
-
   const items = [
-    { kind: "membership",    label: "Membership",              sub: "All members · EEC · PCCS · CCS · CIS · attendance", bg: "#2A6FDB",             badge: memberCount },
-    { kind: "review-full",   label: "Full Curriculum Review",  sub: "AY 2023–24 · integrated longitudinal report",       bg: "var(--brand-violet)", badge: null },
-    { kind: "reviews-phase", label: "Phase Reviews",           sub: "Phase 1 (Pre-Clerkship) · Phase 2 (Clerkship)",      bg: "var(--brand-cyan)",   badge: phaseCount },
-    { kind: "action-plans",  label: "Action Plans",            sub: "LCME closed-loop tracker items",                     bg: "var(--brand-magenta)", badge: trackerCount },
+    { kind: "review-full",   label: "Full Curriculum Review", sub: "AY 2023–24 · integrated longitudinal report", bg: "var(--brand-violet)", badge: null },
+    { kind: "reviews-phase", label: "Phase Reviews",          sub: "Phase 1 (Pre-Clerkship) · Phase 2 (Clerkship)",   bg: "var(--brand-cyan)",   badge: phaseCount },
+    { kind: "action-plans",  label: "Action Plans",            sub: "LCME closed-loop tracker items",                  bg: "var(--brand-magenta)", badge: trackerCount },
   ];
 
   return (
@@ -1346,16 +1340,16 @@ function ReviewDetail({ id }) {
 
 // ─── SECTION SCREEN: Policies ─────────────────────────────────────────────
 function PoliciesScreen({ onItem }) {
-  const P = window.EEC.POLICIES;
+  const P = window.EEC.POLICIES.filter(p => p.kind === "policy");
   const sorted = [...P].sort((a, b) =>
     window.MS_DATE.parseLocal(b.effectiveDate) - window.MS_DATE.parseLocal(a.effectiveDate));
   return (
     <div className="m-body">
       <div className="m-section-head">
-        <div className="eyebrow">Policies &amp; Bylaws</div>
+        <div className="eyebrow">Policies</div>
         <h2>Policies</h2>
         <div style={{ fontSize: 12, color: "var(--grey-11)", marginTop: 6, lineHeight: 1.45 }}>
-          Authoritative policy documents adopted by the EEC, including the bylaws.
+          Authoritative policy documents adopted by the EEC.
         </div>
       </div>
 
@@ -1466,7 +1460,7 @@ function LinkageScreen() {
   }
   for (const a of window.EEC.ACTIONS) (a.lcme || []).forEach(e => bump(e, "actions"));
   for (const v of window.EEC.MOTIONS) (v.lcme || []).forEach(e => bump(e, "motions"));
-  for (const p of window.EEC.POLICIES) (p.lcme || []).forEach(e => bump(e, "policies"));
+  for (const p of window.EEC.POLICIES) { if (p.kind === "policy") (p.lcme || []).forEach(e => bump(e, "policies")); }
 
   // Sort by total count desc
   const rows = [...map.entries()]
