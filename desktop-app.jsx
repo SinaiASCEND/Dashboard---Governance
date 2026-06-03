@@ -151,6 +151,55 @@
   const cmt = (id) => E().committeeById[id] || { short: id, name: id, color: "var(--grey-7)", deep: "var(--grey-11)", tint: "var(--grey-1)" };
   const isFiled = (m) => m.minutesStatus === "Approved";
 
+  // ── Planned agenda (scheduled meetings) ───────────────────────────────────
+  function plannedItems(committee, date) {
+    return (window.PLANNED_AGENDA && window.PLANNED_AGENDA.itemsFor)
+      ? window.PLANNED_AGENDA.itemsFor(committee, date) : [];
+  }
+  // Turn a window.MOBILE_SCHEDULE entry into a meeting-like object, attaching any
+  // planned agenda. Filed-but-not-yet-held records (minutesStatus "Scheduled")
+  // and synthesized schedule stubs both get their planned items folded into items[].
+  function scheduleEntryToMeeting(entry) {
+    if (entry.kind === "filed" && entry.m) {
+      const m = entry.m;
+      if (m.minutesStatus === "Scheduled") {
+        const planned = plannedItems(m.committee, m.date);
+        const items = (m.items && m.items.length) ? m.items : planned;
+        return { ...m, items, planned: items.length > 0 };
+      }
+      return m;
+    }
+    const planned = plannedItems(entry.committee, entry.date);
+    return {
+      id: `scheduled:${entry.committee}:${entry.date}`,
+      committee: entry.committee, date: entry.date,
+      type: "Regular Scheduled Meeting", time: entry.time || null,
+      modality: null, presidingOfficer: null,
+      items: planned, topics: [],
+      present: [], absent: [], recused: [], exOfficio: [], guests: [],
+      attendanceRate: null, minutesStatus: "Scheduled",
+      planned: planned.length > 0, synthetic: true,
+    };
+  }
+  // Unified meeting list across one or all committees: filed minutes + scheduled
+  // sessions from the shared schedule, newest first.
+  function allMeetings(committee) {
+    const sched = window.MOBILE_SCHEDULE;
+    if (!sched || !sched.committeeMeetings) return E().MEETINGS.slice().sort((a, b) => b.date.localeCompare(a.date));
+    const ids = committee === "ALL" ? COMMITTEE_IDS : [committee];
+    const out = [];
+    for (const cid of ids) {
+      for (const en of (sched.committeeMeetings(cid) || [])) out.push(scheduleEntryToMeeting(en));
+    }
+    return out.sort((a, b) => b.date.localeCompare(a.date));
+  }
+  // Resolve a meeting id (real or synthesized "scheduled:CID:DATE") to a meeting.
+  function resolveMeeting(id) {
+    const real = E().meetingById[id];
+    if (real) return scheduleEntryToMeeting({ kind: "filed", m: real });
+    return allMeetings("ALL").find((x) => x.id === id) || null;
+  }
+
   function statusPill(s) {
     const n = (s || "").toLowerCase();
     if (n.includes("complete") || n === "closed") return "good";
@@ -526,15 +575,11 @@
   // ════════════════ MEETINGS ════════════════
   function Meetings({ committee, setCommittee, onSelect }) {
     const e = E();
-    const rows = useMemo(() => {
-      let ms = e.MEETINGS.slice();
-      if (committee !== "ALL") ms = ms.filter((m) => m.committee === committee);
-      return ms.sort((a, b) => b.date.localeCompare(a.date));
-    }, [committee]);
+    const rows = useMemo(() => allMeetings(committee), [committee]);
 
     return (
       <>
-        <div className="d-head"><h1>Meetings & Minutes</h1><div className="lede">Filed minutes and scheduled sessions. Open a meeting for its agenda, motions, action plans, and the approved minutes document.</div></div>
+        <div className="d-head"><h1>Meetings &amp; Minutes</h1><div className="lede">Filed minutes and scheduled sessions. Open a meeting for its agenda, motions, action plans, and the approved minutes document.</div></div>
         <CommitteeFilter value={committee} onChange={setCommittee} />
         {rows.length === 0 ? (
           <div className="d-empty"><h3>Pending intake</h3><p>No meetings on record for this committee yet.</p></div>
@@ -546,15 +591,18 @@
                 {rows.map((m) => {
                   const motions = e.MOTIONS.filter((v) => v.meetingId === m.id).length;
                   const att = m.attendanceRate != null ? Math.round(m.attendanceRate * 100) + "%" : "—";
+                  const nItems = (m.items || []).length;
+                  const statusLabel = m.planned ? "Agenda set" : m.minutesStatus;
+                  const statusCls = m.planned ? "cyan" : minutesPill(m.minutesStatus);
                   return (
                     <tr key={m.id} className="row-link" onClick={() => onSelect({ type: "meeting", id: m.id })}>
                       <td style={{ paddingLeft: 16, whiteSpace: "nowrap" }} className="mono">{fmt(m.date, "mdy")}</td>
                       <td><CDot id={m.committee} /></td>
                       <td style={{ maxWidth: 280 }}>{m.type.replace("Regular Scheduled Meeting", "Regular")}</td>
-                      <td className="num">{isFiled(m) ? (m.items || []).length : "—"}</td>
+                      <td className="num">{nItems || "—"}</td>
                       <td className="num">{motions || "—"}</td>
                       <td className="t-mono" style={{ color: "var(--grey-11)" }}>{att}</td>
-                      <td><span className={"pill " + minutesPill(m.minutesStatus)}>{m.minutesStatus}</span></td>
+                      <td><span className={"pill " + statusCls}>{statusLabel}</span></td>
                     </tr>
                   );
                 })}
@@ -568,7 +616,7 @@
 
   function MeetingDrawer({ id, onClose, onSelect }) {
     const e = E();
-    const m = e.meetingById[id];
+    const m = resolveMeeting(id);
     if (!m) return null;
     const c = cmt(m.committee);
     const md = window.MEETING_DETAILS && window.MEETING_DETAILS[id];
@@ -612,6 +660,38 @@
                   <div className="it-ttl">{it.title}</div>
                   {it.presenter && <div className="it-meta"><strong>Presenter:</strong> {it.presenter}</div>}
                   {it.outcome && <div className="it-meta">{it.outcome}</div>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {!isFiled(m) && m.planned && (m.items || []).length > 0 && (
+          <div className="d-block">
+            <div style={{ fontSize: 11.5, color: "var(--brand-cyan-deep)", background: "var(--brand-cyan-tint)", padding: "8px 12px", borderRadius: 8, marginBottom: 10, lineHeight: 1.45 }}>
+              Planned agenda from the Agenda Tracker — items, presenters, and guests may change before the meeting; minutes are filed afterward.
+            </div>
+            <h4>Planned agenda — {(m.items || []).length} items</h4>
+            {m.items.map((it, i) => {
+              const cat = (it.category || "").toUpperCase();
+              const cls = cat.includes("VOTING") ? "violet" : cat.includes("DISCUSS") ? "cyan" : cat.includes("REVIEW") ? "muted" : "muted";
+              return (
+                <div className="d-itemcard" key={i} style={{ borderLeftColor: c.color }}>
+                  <div className="it-top">
+                    {it.n && <span className="t-mono" style={{ fontSize: 10, color: "var(--grey-7)" }}>§{it.n}</span>}
+                    {cat && <span className={"pill " + cls} style={{ fontSize: 10 }}>{cat}</span>}
+                    {it.ready && /YES/i.test(it.ready) && <span className="pill good" style={{ fontSize: 10, marginLeft: "auto" }}>READY</span>}
+                  </div>
+                  <div className="it-ttl">{it.title}</div>
+                  {it.subitems && it.subitems.length > 0 && (
+                    <ul style={{ margin: "7px 0 0", paddingLeft: 18 }}>
+                      {it.subitems.map((s, j) => <li key={j} style={{ fontSize: 11.5, color: "var(--grey-11)", lineHeight: 1.5 }}>{s}</li>)}
+                    </ul>
+                  )}
+                  {it.owner && <div className="it-meta"><strong>Subcommittee owner:</strong> {it.owner}</div>}
+                  {it.presenter && <div className="it-meta"><strong>Presenter:</strong> {it.presenter}</div>}
+                  {it.guests && <div className="it-meta"><strong>Guests:</strong> {it.guests}</div>}
+                  {it.goesToEEC && <div className="it-meta"><strong>Feeds EEC:</strong> {fmt(it.goesToEEC, "mdy")}</div>}
                 </div>
               );
             })}
