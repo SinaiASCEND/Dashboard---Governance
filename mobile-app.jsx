@@ -288,6 +288,27 @@ const MOBILE_CSS = `
 .m-season.open .tw { transform: rotate(90deg); }
 .m-season-list { padding: 2px 0 6px; }
 
+/* Most-recent / Next meeting hero pair */
+.m-hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+.m-hero {
+  position: relative; overflow: hidden; text-align: left; border: 0; cursor: pointer;
+  background: var(--paper); border-radius: 14px; padding: 13px 14px;
+  display: flex; flex-direction: column; gap: 3px; min-height: 96px; font: inherit; color: inherit;
+  box-shadow: 0 1px 2px rgba(20,20,20,0.04), 0 0 0 1px rgba(20,20,20,0.06);
+  transition: transform .14s ease;
+}
+.m-hero:active { transform: scale(0.98); }
+.m-hero.next { box-shadow: 0 1px 2px rgba(20,20,20,0.04), 0 0 0 1.5px var(--brand-cyan); }
+.m-hero .accent { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+.m-hero .eyebrow { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; color: var(--grey-7); display: flex; align-items: center; gap: 5px; }
+.m-hero.next .eyebrow { color: var(--brand-cyan-deep); }
+.m-hero .big { font-family: var(--serif); font-size: 18px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.1; color: var(--ink); margin-top: 3px; }
+.m-hero .rel { font-size: 11px; color: var(--grey-11); }
+.m-hero .tagline { margin-top: auto; padding-top: 8px; }
+.m-hero .tagline .tag { font-size: 9px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; }
+.m-hero.empty { cursor: default; box-shadow: 0 0 0 1px var(--grey-2); background: transparent; }
+.m-hero.empty .big { color: var(--grey-7); font-weight: 500; font-size: 13px; }
+
 /* Meeting detail buttons (2x2) */
 .m-detail-card {
   background: var(--paper); border-radius: 14px;
@@ -777,10 +798,12 @@ function HomeScreen({ onPick, onSection }) {
   const lastSync = new Date(window.EEC.TODAY);
   const lastSyncStr = lastSync.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
-  // OCA stats (recurring weekly schedule)
-  const ocaNext = SCHED.nextMeeting("OCA");
+  // EEC is the dominant body; the four subcommittees sit beneath it.
+  const eec = window.EEC.committeeById["EEC"];
+  const eecFiled = SCHED.filedCount("EEC");
+  const eecNext = SCHED.nextMeeting("EEC");
 
-  const tiles = ["EEC", "PCCS", "CCS", "AES"].map(id => {
+  const tiles = ["PCCS", "CCS", "CIS", "AES"].map(id => {
     const c = window.EEC.committeeById[id];
     return {
       ...c,
@@ -809,23 +832,23 @@ function HomeScreen({ onPick, onSection }) {
         </div>
       </div>
 
-      {/* OCA hero button */}
-      <button className="m-oca" onClick={() => onPick("OCA")}>
+      {/* EEC dominant hero */}
+      <button className="m-oca" onClick={() => onPick("EEC")}>
         <div>
-          <div className="eyebrow"><span className="dot"></span>OCA</div>
-          <div className="title">Curricular Affairs<br/>Meetings</div>
+          <div className="eyebrow"><span className="dot"></span>EEC</div>
+          <div className="title">Executive Education<br/>Committee</div>
           <div className="stats">
-            <span>Mon 10am–12pm · Thu 1:30–2:30pm</span>
-            {ocaNext && <>
+            <span>{eecFiled} on record</span>
+            {eecNext && <>
               <span className="sep"></span>
-              <span>Next · {window.MS_DATE.parseLocal(ocaNext.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</span>
+              <span>Next · {window.MS_DATE.parseLocal(eecNext.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</span>
             </>}
           </div>
         </div>
         <div className="chev"><Chev size={14} /></div>
       </button>
 
-      {/* 2x2 committee grid */}
+      {/* Four subcommittees */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 14 }}>
         {tiles.map(t => <CommitteeTile key={t.id} c={t} onPick={onPick} />)}
       </div>
@@ -951,6 +974,38 @@ function SeasonTile({ label, range, entries, c, onPick, defaultOpen }) {
 }
 
 // ─── Screen: Committee Meetings (month tiles + season bands) ───────────────
+function MeetingHeroM({ kind, entry, c, onPick }) {
+  const isNext = kind === "next";
+  if (!entry) {
+    return (
+      <div className="m-hero empty">
+        <span className="accent" style={{ background: "var(--grey-3)" }} />
+        <div className="eyebrow">{isNext ? "Next meeting" : "Most recent"}</div>
+        <div className="big">{isNext ? "None scheduled" : "None on record"}</div>
+      </div>
+    );
+  }
+  const d = window.MS_DATE.parseLocal(entry.date);
+  const meta = tileMeta(entry);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const days = Math.round((d - today) / 86400000);
+  const rel = days === 0 ? "Today" : days === 1 ? "Tomorrow" : days === -1 ? "Yesterday"
+    : days > 0 ? `in ${days} days` : `${Math.abs(days)} days ago`;
+  return (
+    <button className={"m-hero" + (isNext ? " next" : "")} onClick={() => onPick(entry)}>
+      <span className="accent" style={{ background: c.color }} />
+      <div className="eyebrow">{isNext ? "Next meeting" : "Most recent"}</div>
+      <div className="big">{d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}<span style={{ color: "var(--grey-7)", fontWeight: 500 }}> {d.getFullYear()}</span></div>
+      <div className="rel">{rel}</div>
+      <div className="tagline"><span className={"tag " + meta.tag} style={
+        meta.tag === "filed" ? { background: "#e7f5ec", color: "#1a7f46" }
+        : meta.tag === "planned" ? { background: "var(--brand-violet-tint)", color: "var(--brand-violet)" }
+        : { background: "var(--grey-2)", color: "var(--grey-11)" }
+      }>{meta.label}</span></div>
+    </button>
+  );
+}
+
 function CommitteeScreen({ committeeId, onPick }) {
   if (committeeId === "OCA") return <OcaScreen onPick={onPick} />;
 
@@ -976,6 +1031,12 @@ function CommitteeScreen({ committeeId, onPick }) {
 
   const hasPrior = spr.length || fall.length || earlier.length;
 
+  // Most-recent (latest past/today) and next (earliest future) meetings.
+  const todayStr = window.MS_DATE.ymdLocal(new Date());
+  const recentEntry = entries.find(e => e.date <= todayStr) || null;      // entries are newest-first
+  const futureSorted = entries.filter(e => e.date > todayStr).sort((a, b) => a.date.localeCompare(b.date));
+  const nextEntry = futureSorted[0] || null;
+
   return (
     <div className="m-body">
       <div className="m-section-head" style={{ padding: "10px 4px 12px" }}>
@@ -990,6 +1051,13 @@ function CommitteeScreen({ committeeId, onPick }) {
           </div>
         )}
       </div>
+
+      {entries.length > 0 && (
+        <div className="m-hero-row">
+          <MeetingHeroM kind="recent" entry={recentEntry} c={c} onPick={onPick} />
+          <MeetingHeroM kind="next" entry={nextEntry} c={c} onPick={onPick} />
+        </div>
+      )}
 
       {entries.length === 0 && (
         <div className="m-empty">

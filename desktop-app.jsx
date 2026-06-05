@@ -107,6 +107,12 @@
 .d-cc .row2 { display:flex; gap: 16px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--grey-2); }
 .d-cc .stat .n { font-family: var(--serif); font-size: 18px; font-weight: 700; line-height: 1; }
 .d-cc .stat .l { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--grey-7); margin-top: 3px; }
+.d-cc.wide { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 28px; }
+.d-cc.wide .short { font-size: 30px; margin: 0; }
+.d-cc.wide .nm { min-height: 0; max-width: 460px; }
+.d-cc.wide .row2 { margin: 0; padding: 0; border: 0; gap: 28px; }
+.d-cc.wide .nextline { grid-column: 2 / 4; }
+@media (max-width: 720px) { .d-cc.wide { grid-template-columns: 1fr; gap: 12px; } .d-cc.wide .row2 { padding-top: 12px; border-top: 1px solid var(--grey-2); } }
 
 /* generic two-column section grid */
 .d-grid2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 18px; align-items: start; }
@@ -185,6 +191,7 @@
 .d-hbars .hb .lbl .std { font-family: var(--mono); color: var(--grey-7); margin-right: 6px; }
 .d-hbars .hb .track { flex: 1; height: 16px; background: var(--grey-1); border-radius: 4px; overflow:hidden; display:flex; }
 .d-hbars .hb .track .seg { height: 100%; }
+.d-hbars .hb .track .fill { height: 100%; display: flex; min-width: 2px; }
 .d-hbars .hb .n { flex: 0 0 auto; font-family: var(--mono); font-size: 11px; color: var(--grey-11); min-width: 28px; text-align:right; }
 .d-stacklegend { display:flex; gap: 16px; margin-bottom: 14px; font-size: 11.5px; color: var(--grey-11); }
 .d-stacklegend .it { display:flex; align-items:center; gap:6px; } .d-stacklegend .it .sw { width:11px; height:11px; border-radius:3px; }
@@ -431,8 +438,10 @@
           {doms.map(([d, cts]) => (
             <div className="hb" key={d}>
               <span className="lbl">{d}</span>
-              <span className="track" style={{ width: Math.max(8, (cts.total / max) * 100) + "%", flex: "none" }}>
-                {SEG.map(([k, c]) => (cts[k] ? <span key={k} className="seg" style={{ width: (cts[k] / cts.total) * 100 + "%", background: c }} title={`${k}: ${cts[k]}`} /> : null))}
+              <span className="track">
+                <span className="fill" style={{ width: Math.max(2, (cts.total / max) * 100) + "%" }}>
+                  {SEG.map(([k, c]) => (cts[k] ? <span key={k} className="seg" style={{ width: (cts[k] / cts.total) * 100 + "%", background: c }} title={`${k}: ${cts[k]}`} /> : null))}
+                </span>
               </span>
               <span className="n">{cts.total}</span>
             </div>
@@ -559,28 +568,40 @@
         </div>
 
         <div className="section-head"><h2 style={{ fontSize: 17 }}>Committees</h2></div>
-        <div className="d-cards" style={{ marginBottom: 24 }}>
-          {COMMITTEE_IDS.map((id) => {
+        {(() => {
+          const CommCard = ({ id, wide }) => {
             const c = cmt(id);
             const cFiled = filed.filter((m) => m.committee === id).length;
             const next = window.MOBILE_SCHEDULE.nextMeeting ? window.MOBILE_SCHEDULE.nextMeeting(id) : null;
             const total = (c.votingSeats || 0) + (c.nonVotingSeats || 0);
             return (
-              <div className="card d-cc" key={id} onClick={() => onNav("meetings", id)}>
+              <div className={"card d-cc" + (wide ? " wide" : "")} onClick={() => onNav("meetings", id)}>
                 <span className="stripe" style={{ background: c.color }} />
-                <div className="short" style={{ color: c.deep }}>{c.short}</div>
-                <div className="nm">{c.name}</div>
+                <div>
+                  <div className="short" style={{ color: c.deep }}>{c.short}</div>
+                  <div className="nm">{c.name}</div>
+                </div>
                 <div className="row2">
                   <div className="stat"><div className="n">{c.votingSeats}<span style={{ fontSize: 11, color: "var(--grey-7)", fontWeight: 400 }}>/{total}</span></div><div className="l">Voting / seats</div></div>
                   <div className="stat"><div className="n">{c.quorum}</div><div className="l">Quorum</div></div>
                   <div className="stat"><div className="n">{cFiled || "—"}</div><div className="l">On record</div></div>
                 </div>
-                {next && <div style={{ marginTop: 10, fontSize: 11, color: "var(--grey-11)" }}>Next · <strong style={{ color: "var(--ink-2)" }}>{fmt(next.date, "md")}</strong></div>}
-                {!cFiled && id !== "EEC" && <div style={{ marginTop: 10, fontSize: 11, fontStyle: "italic", color: "var(--grey-7)" }}>Minutes pending intake</div>}
+                <div className="nextline">
+                  {next && <div style={{ fontSize: 11, color: "var(--grey-11)" }}>Next · <strong style={{ color: "var(--ink-2)" }}>{fmt(next.date, "md")}</strong></div>}
+                  {!cFiled && id !== "EEC" && <div style={{ fontSize: 11, fontStyle: "italic", color: "var(--grey-7)" }}>Minutes pending intake</div>}
+                </div>
               </div>
             );
-          })}
-        </div>
+          };
+          return (
+            <div style={{ marginBottom: 24 }}>
+              <CommCard id="EEC" wide />
+              <div className="d-cards" style={{ marginTop: 14 }}>
+                {COMMITTEE_IDS.filter((id) => id !== "EEC").map((id) => <CommCard key={id} id={id} />)}
+              </div>
+            </div>
+          );
+        })()}
 
         <div className="d-grid2">
           <div className="card d-listcard">
