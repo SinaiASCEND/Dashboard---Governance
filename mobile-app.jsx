@@ -242,6 +242,52 @@ const MOBILE_CSS = `
 }
 .m-meet-row ul.agenda li.more::before { display: none; }
 
+/* ── Meetings: season bands + month tiles ──────────────────────────────── */
+.m-band-head {
+  font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--grey-11); font-weight: 700;
+  padding: 20px 4px 10px; display: flex; align-items: baseline; gap: 8px;
+}
+.m-band-head .n { font-family: var(--mono); color: var(--grey-7); font-weight: 600; letter-spacing: 0; text-transform: none; }
+.m-mgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.m-mtile {
+  position: relative; overflow: hidden; background: var(--paper);
+  border-radius: 14px; padding: 13px 13px 12px; text-align: left; border: 0;
+  cursor: pointer; display: flex; flex-direction: column; gap: 3px; min-height: 104px;
+  box-shadow: 0 1px 2px rgba(20,20,20,0.04), 0 0 0 1px rgba(20,20,20,0.06);
+  transition: transform .14s ease, box-shadow .14s ease; font: inherit; color: inherit;
+}
+.m-mtile:active { transform: scale(0.98); }
+.m-mtile.is-today { box-shadow: 0 1px 2px rgba(20,20,20,0.04), 0 0 0 1.5px var(--brand-cyan); }
+.m-mtile .stripe { position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+.m-mtile .mo { font-family: var(--serif); font-size: 17px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.08; margin-top: 4px; color: var(--ink); }
+.m-mtile .mo .yr { color: var(--grey-7); font-weight: 500; }
+.m-mtile .dt { font-size: 11px; color: var(--grey-11); font-weight: 600; letter-spacing: 0.02em; }
+.m-mtile .foot { margin-top: auto; display: flex; align-items: center; gap: 6px; padding-top: 9px; }
+.m-mtile .tag { font-size: 9px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; }
+.m-mtile .tag.filed { background: #e7f5ec; color: #1a7f46; }
+.m-mtile .tag.planned { background: var(--brand-violet-tint); color: var(--brand-violet); }
+.m-mtile .tag.sched { background: var(--grey-2); color: var(--grey-11); }
+.m-mtile .cnt { font-size: 10px; color: var(--grey-7); font-family: var(--mono); }
+.m-mtile.empty { cursor: default; box-shadow: 0 0 0 1px var(--grey-2); background: transparent; }
+.m-mtile.empty .mo { color: var(--grey-7); font-weight: 500; }
+.m-mtile.empty .dt { color: var(--grey-7); font-style: italic; font-weight: 500; }
+
+.m-season {
+  width: 100%; text-align: left; border: 0; cursor: pointer; background: var(--paper);
+  border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+  margin-bottom: 10px; position: relative; overflow: hidden; font: inherit; color: inherit;
+  box-shadow: 0 1px 2px rgba(20,20,20,0.04), 0 0 0 1px rgba(20,20,20,0.06);
+}
+.m-season .stripe { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+.m-season .lbl { font-family: var(--serif); font-size: 16px; font-weight: 600; color: var(--ink); }
+.m-season .rng { font-size: 11px; color: var(--grey-11); margin-top: 1px; }
+.m-season .cnt { margin-left: auto; font-size: 11px; color: var(--grey-11); display: flex; align-items: center; gap: 8px; }
+.m-season .cnt .num { font-family: var(--serif); font-weight: 700; font-size: 15px; color: var(--ink); }
+.m-season .tw { transition: transform .18s ease; color: var(--grey-7); display: inline-flex; }
+.m-season.open .tw { transform: rotate(90deg); }
+.m-season-list { padding: 2px 0 6px; }
+
 /* Meeting detail buttons (2x2) */
 .m-detail-card {
   background: var(--paper); border-radius: 14px;
@@ -821,52 +867,121 @@ function CommitteeTile({ c, onPick }) {
   );
 }
 
-// ─── Screen: Committee Meetings list ──────────────────────────────────────
-function CommitteeScreen({ committeeId, onPick }) {
-  const entries = window.MOBILE_SCHEDULE.committeeMeetings(committeeId);
-  const bodyRef = React.useRef(null);
+// ─── Meetings season model ────────────────────────────────────────────────
+// Current cycle AY 2026–27 (Jul 2026 → Jun 2027) is monthly across every
+// committee, so it renders as 12 month tiles. Everything before it collapses
+// into season tiles: Spring 2026 (Jan–Jun 2026) and Fall 2025 (Jul–Dec 2025).
+const AY2627_MONTHS = [
+  "2026-07", "2026-08", "2026-09", "2026-10", "2026-11", "2026-12",
+  "2027-01", "2027-02", "2027-03", "2027-04", "2027-05", "2027-06",
+];
+function seasonOf(date) {
+  const k = String(date).slice(0, 7);
+  if (k >= "2026-07" && k <= "2027-06") return "AY2627";
+  if (k >= "2026-01" && k <= "2026-06") return "SPR26";
+  if (k >= "2025-07" && k <= "2025-12") return "FALL25";
+  return k < "2025-07" ? "EARLIER" : "LATER";
+}
+// Status badge for a tile. filed → minutes on record; otherwise scheduled, with
+// the planned-agenda item count when the Agenda Tracker has items for that date.
+function tileMeta(entry) {
+  if (!entry) return null;
+  if (entry.kind === "filed") {
+    return { tag: "filed", label: "Minutes", count: (entry.m && entry.m.items ? entry.m.items.length : 0) };
+  }
+  const planned = (window.PLANNED_AGENDA && window.PLANNED_AGENDA.itemsFor)
+    ? window.PLANNED_AGENDA.itemsFor(entry.committee, entry.date) : [];
+  return planned.length
+    ? { tag: "planned", label: "Agenda", count: planned.length }
+    : { tag: "sched", label: "Scheduled", count: 0 };
+}
 
-  // Group by month
-  const grouped = useMemoMA(() => {
-    const out = new Map();
-    entries.forEach(e => {
-      const k = e.date.slice(0, 7);
-      if (!out.has(k)) out.set(k, []);
-      out.get(k).push(e);
-    });
-    return [...out.entries()];
+function MonthTile({ monthKey, entry, c, onPick, todayKey }) {
+  const md = window.MS_DATE.parseLocal(monthKey + "-01");
+  const moName = md.toLocaleDateString("en-US", { month: "long" });
+  if (!entry) {
+    return (
+      <div className="m-mtile empty">
+        <span className="stripe" style={{ background: "var(--grey-3)" }} />
+        <div className="mo">{moName} <span className="yr">{md.getFullYear()}</span></div>
+        <div className="dt">no meeting</div>
+      </div>
+    );
+  }
+  const dd = window.MS_DATE.parseLocal(entry.date);
+  const meta = tileMeta(entry);
+  return (
+    <button className={"m-mtile" + (monthKey === todayKey ? " is-today" : "")} onClick={() => onPick(entry)}>
+      <span className="stripe" style={{ background: c.color }} />
+      <div className="mo">{moName} <span className="yr">{md.getFullYear()}</span></div>
+      <div className="dt">{dd.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</div>
+      <div className="foot">
+        <span className={"tag " + meta.tag}>{meta.label}</span>
+        {meta.count > 0 && <span className="cnt">{meta.count} item{meta.count === 1 ? "" : "s"}</span>}
+      </div>
+    </button>
+  );
+}
+
+function SeasonTile({ label, range, entries, c, onPick, defaultOpen }) {
+  const [open, setOpen] = useStateMA(!!defaultOpen);
+  if (!entries.length) return null;
+  return (
+    <div>
+      <button className={"m-season" + (open ? " open" : "")} onClick={() => setOpen(o => !o)}>
+        <span className="stripe" style={{ background: c.color }} />
+        <div>
+          <div className="lbl">{label}</div>
+          <div className="rng">{range}</div>
+        </div>
+        <div className="cnt">
+          <span><span className="num">{entries.length}</span> meeting{entries.length === 1 ? "" : "s"}</span>
+          <span className="tw"><Chev size={14} /></span>
+        </div>
+      </button>
+      {open && (
+        <div className="m-season-list">
+          {entries.map((e, i) => (
+            <MeetingRow key={(e.m && e.m.id) || (e.date + "-" + i)} entry={e} committee={c} onPick={onPick} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Screen: Committee Meetings (month tiles + season bands) ───────────────
+function CommitteeScreen({ committeeId, onPick }) {
+  if (committeeId === "OCA") return <OcaScreen onPick={onPick} />;
+
+  const entries = window.MOBILE_SCHEDULE.committeeMeetings(committeeId);
+  const c = getCommittee(committeeId);
+  const filedCount = entries.filter(e => e.kind === "filed").length;
+  const todayKey = window.MS_DATE.ymdLocal(new Date()).slice(0, 7);
+
+  // Bucket entries into the current cycle (by month) and the prior seasons.
+  const { byMonth, spr, fall, earlier, later } = useMemoMA(() => {
+    const byMonth = {}, spr = [], fall = [], earlier = [], later = [];
+    for (const e of entries) {
+      switch (seasonOf(e.date)) {
+        case "AY2627": byMonth[e.date.slice(0, 7)] = e; break; // one per month per committee
+        case "SPR26":  spr.push(e); break;
+        case "FALL25": fall.push(e); break;
+        case "EARLIER": earlier.push(e); break;
+        default: later.push(e);
+      }
+    }
+    return { byMonth, spr, fall, earlier, later };
   }, [committeeId]);
 
-  // Open scrolled to the current month (or closest upcoming month if today has no entries).
-  useEffectMA(() => {
-    if (!bodyRef.current) return;
-    const todayKey = window.MS_DATE.ymdLocal(new Date()).slice(0, 7);
-    const groups = [...bodyRef.current.querySelectorAll("[data-month]")];
-    let target = groups.find(g => g.dataset.month === todayKey);
-    if (!target) {
-      // groups are in DOM order = descending. Walk ascending to find first >= today.
-      target = [...groups].reverse().find(g => g.dataset.month >= todayKey);
-    }
-    if (target) {
-      bodyRef.current.scrollTop = target.offsetTop - bodyRef.current.offsetTop - 4;
-    }
-  }, [committeeId, grouped.length]);
-
-  const c = getCommittee(committeeId);
-  const headerInfo = committeeId === "OCA"
-    ? { eyebrow: "Office of Curricular Affairs", title: "Curricular Affairs Meetings", sub: "Weekly operational meetings of the Office — Mondays 10 am – 12 pm and Thursdays 1:30 – 2:30 pm. Minutes are filed separately from the EEC." }
-    : { eyebrow: c.short + " · " + (c.cadence?.split("(")[0].trim() || ""), title: c.name, sub: c.charge };
-
-  const filedCount = entries.filter(e => e.kind === "filed").length;
+  const hasPrior = spr.length || fall.length || earlier.length;
 
   return (
-    <div className="m-body" ref={bodyRef}>
+    <div className="m-body">
       <div className="m-section-head" style={{ padding: "10px 4px 12px" }}>
-        <div className="eyebrow">{headerInfo.eyebrow}</div>
-        <h2>{headerInfo.title}</h2>
-        <div style={{ fontSize: 12, color: "var(--grey-11)", marginTop: 6, lineHeight: 1.45 }}>
-          {headerInfo.sub}
-        </div>
+        <div className="eyebrow">{c.short + " · " + (c.cadence ? c.cadence.split("(")[0].trim() : "")}</div>
+        <h2>{c.name}</h2>
+        <div style={{ fontSize: 12, color: "var(--grey-11)", marginTop: 6, lineHeight: 1.45 }}>{c.charge}</div>
         {entries.length > 0 && (
           <div style={{ display: "flex", gap: 12, marginTop: 10, fontSize: 11, color: "var(--grey-11)" }}>
             <span><strong style={{ color: "var(--ink)", fontFamily: "var(--mono)" }}>{filedCount}</strong> on record</span>
@@ -888,6 +1003,66 @@ function CommitteeScreen({ committeeId, onPick }) {
         </div>
       )}
 
+      {entries.length > 0 && (
+        <>
+          <div className="m-band-head">AY 2026–27 <span className="n">Jul 2026 – Jun 2027</span></div>
+          <div className="m-mgrid">
+            {AY2627_MONTHS.map(mk => (
+              <MonthTile key={mk} monthKey={mk} entry={byMonth[mk]} c={c} onPick={onPick} todayKey={todayKey} />
+            ))}
+          </div>
+
+          {hasPrior ? <div className="m-band-head">Earlier meetings</div> : null}
+          <SeasonTile label="Spring 2026" range="Jan – Jun 2026" entries={spr} c={c} onPick={onPick} />
+          <SeasonTile label="Fall 2025" range="Jul – Dec 2025" entries={fall} c={c} onPick={onPick} />
+          {earlier.length > 0 && <SeasonTile label="Earlier" range="before Jul 2025" entries={earlier} c={c} onPick={onPick} />}
+          {later.length > 0 && (
+            <>
+              <div className="m-band-head">Beyond AY 2026–27</div>
+              <SeasonTile label="Later" range="after Jun 2027" entries={later} c={c} onPick={onPick} defaultOpen />
+            </>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// OCA keeps its weekly, month-grouped list (it doesn't follow the committee
+// academic-year cadence — it recurs Mondays & Thursdays).
+function OcaScreen({ onPick }) {
+  const entries = window.MOBILE_SCHEDULE.committeeMeetings("OCA");
+  const bodyRef = React.useRef(null);
+  const c = getCommittee("OCA");
+
+  const grouped = useMemoMA(() => {
+    const out = new Map();
+    entries.forEach(e => {
+      const k = e.date.slice(0, 7);
+      if (!out.has(k)) out.set(k, []);
+      out.get(k).push(e);
+    });
+    return [...out.entries()];
+  }, []);
+
+  useEffectMA(() => {
+    if (!bodyRef.current) return;
+    const todayKey = window.MS_DATE.ymdLocal(new Date()).slice(0, 7);
+    const groups = [...bodyRef.current.querySelectorAll("[data-month]")];
+    let target = groups.find(g => g.dataset.month === todayKey);
+    if (!target) target = [...groups].reverse().find(g => g.dataset.month >= todayKey);
+    if (target) bodyRef.current.scrollTop = target.offsetTop - bodyRef.current.offsetTop - 4;
+  }, [grouped.length]);
+
+  return (
+    <div className="m-body" ref={bodyRef}>
+      <div className="m-section-head" style={{ padding: "10px 4px 12px" }}>
+        <div className="eyebrow">Office of Curricular Affairs</div>
+        <h2>Curricular Affairs Meetings</h2>
+        <div style={{ fontSize: 12, color: "var(--grey-11)", marginTop: 6, lineHeight: 1.45 }}>
+          Weekly operational meetings of the Office — Mondays 10 am – 12 pm and Thursdays 1:30 – 2:30 pm. Minutes are filed separately from the EEC.
+        </div>
+      </div>
       {grouped.map(([month, arr]) => {
         const d = window.MS_DATE.parseLocal(month + "-01");
         const isCurrent = month === window.MS_DATE.ymdLocal(new Date()).slice(0, 7);
@@ -902,10 +1077,7 @@ function CommitteeScreen({ committeeId, onPick }) {
               )}
             </div>
             {arr.map((e, i) => (
-              <MeetingRow key={(e.m && e.m.id) || (e.date + "-" + i)}
-                          entry={e}
-                          committee={c}
-                          onPick={onPick} />
+              <MeetingRow key={(e.m && e.m.id) || (e.date + "-" + i)} entry={e} committee={c} onPick={onPick} />
             ))}
           </div>
         );
