@@ -1,9 +1,12 @@
 // mobile-app.jsx — Mobile Governance Dashboard
 // 4-level nav:
-//   home        → 5 buttons (OCA + EEC/PCCS/CCS/AES)
-//   committee   → meetings list for a committee, each row shows date + agenda bullets
-//   meeting     → 4 buttons (Summary, Governance Actions, Operational Actions, Download PDF)
+//   home        → EEC hero + 2×2 subcommittee grid (PCCS/CCS/CIS/AES)
+//   committee   → meetings list for a committee (month-jump strip + scroll-spy),
+//                 each row shows date + agenda bullets (filed minutes or planned agenda)
+//   meeting     → 4 buttons (Summary/Planned Agenda, Governance, Operational, Download)
 //   detail      → one of the four sub-screens
+// Planned agendas come from window.PLANNED_AGENDA (Agenda Tracker); scheduled
+// meetings fold their planned items into items[] via entryToMeeting().
 
 const { useState: useStateMA, useMemo: useMemoMA, useEffect: useEffectMA } = React;
 
@@ -462,6 +465,36 @@ const MOBILE_CSS = `
   font-size: 11.5px; color: var(--grey-11); margin: 0; line-height: 1.5;
 }
 
+/* Sticky month-jump strip */
+.m-month-strip {
+  position: sticky; top: 0; z-index: 6;
+  display: flex; gap: 6px;
+  margin: 0 -18px 4px;          /* full-bleed past the m-body side padding */
+  padding: 8px 18px;
+  overflow-x: auto;
+  background: rgba(245,246,247,0.92);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border-bottom: 0.5px solid var(--grey-3);
+  -webkit-overflow-scrolling: touch;
+}
+.m-month-strip::-webkit-scrollbar { height: 0; }
+.m-month-chip {
+  flex: 0 0 auto;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--grey-3);
+  background: var(--paper);
+  color: var(--grey-11);
+  font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+  font-family: var(--sans);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.m-month-chip .yr { opacity: 0.55; margin-left: 3px; }
+.m-month-chip.active .yr { opacity: 0.85; }
+
 /* Slide transitions */
 .m-screens-stack { position: absolute; inset: 44px 0 0 0; }
 .m-page {
@@ -517,26 +550,26 @@ function shortAgenda(item) {
   return t || (item.category || "Item");
 }
 
-// Planned (forward-looking) agenda items for a scheduled meeting, from the
-// Agenda Tracker (window.PLANNED_AGENDA). Returns [] when none / not loaded.
+// Planned (forward-looking) agenda items for a meeting, from the Agenda Tracker
+// (window.PLANNED_AGENDA). Returns [] when none / not loaded.
 function plannedItems(committee, date) {
   return (window.PLANNED_AGENDA && window.PLANNED_AGENDA.itemsFor)
     ? window.PLANNED_AGENDA.itemsFor(committee, date) : [];
 }
 
 // ─── Meeting/entry helper ─────────────────────────────────────────────────────
+// Mirrors the desktop's scheduleEntryToMeeting: filed-but-not-yet-held records
+// (minutesStatus other than "Approved") and synthesized schedule stubs both get
+// their planned agenda folded into items[].
 function entryToMeeting(entry) {
   if (entry.kind === "filed" && entry.m) {
     const m = entry.m;
-    // Placeholder records that are scheduled but not yet minuted (minutesStatus
-    // other than "Approved") are treated as scheduled and get the planned agenda
-    // folded in — same as the desktop dashboard.
     if (m.minutesStatus !== "Approved") {
       const planned = plannedItems(m.committee, m.date);
       const items = (m.items && m.items.length) ? m.items : planned;
       return { ...m, items, scheduled: true, planned: items.length > 0 };
     }
-    return { ...m, scheduled: false };
+    return { ...m, scheduled: false, planned: false };
   }
   // Synthesize a stub for scheduled-only entries, folding in any planned agenda.
   const planned = plannedItems(entry.committee, entry.date);
@@ -722,23 +755,25 @@ function detailTitle(kind) {
 
 // ─── Screen: Home ─────────────────────────────────────────────────────────
 function HomeScreen({ onPick, onSection }) {
-  const C = window.EEC.COMMITTEES;
   const SCHED = window.MOBILE_SCHEDULE;
 
   const lastSync = new Date(window.EEC.TODAY);
   const lastSyncStr = lastSync.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
-  // OCA stats (recurring weekly schedule)
-  const ocaNext = SCHED.nextMeeting("OCA");
+  // Current academic year (AY runs Jul–Jun)
+  const ay = (() => {
+    const d = new Date(window.EEC.TODAY);
+    const y = d.getFullYear();
+    const start = d.getMonth() >= 6 ? y : y - 1;
+    return `AY ${start}–${String((start + 1) % 100).padStart(2, "0")}`;
+  })();
 
-  const tiles = ["EEC", "PCCS", "CCS", "AES"].map(id => {
+  const eecFiled = SCHED.filedCount("EEC");
+  const eecNext = SCHED.nextMeeting("EEC");
+
+  const subs = ["PCCS", "CCS", "CIS", "AES"].map(id => {
     const c = window.EEC.committeeById[id];
-    return {
-      ...c,
-      total: SCHED.totalCount(id),
-      filed: SCHED.filedCount(id),
-      next: SCHED.nextMeeting(id),
-    };
+    return { ...c, total: SCHED.totalCount(id), filed: SCHED.filedCount(id), next: SCHED.nextMeeting(id) };
   });
 
   return (
@@ -753,39 +788,42 @@ function HomeScreen({ onPick, onSection }) {
           Mount Sinai · MD Program · Office of Curricular Affairs
         </div>
         <div className="meta">
-          <span className="pill-ay">AY 2025–26</span>
+          <span className="pill-ay">{ay}</span>
           <span style={{ color: "var(--grey-7)", letterSpacing: "0.04em", textTransform: "none", fontSize: 11, fontWeight: 500 }}>
             Last sync · {lastSyncStr}
           </span>
         </div>
       </div>
 
-      {/* OCA hero button */}
-      <button className="m-oca" onClick={() => onPick("OCA")}>
+      {/* EEC hero — the dominant committee */}
+      <button className="m-oca" onClick={() => onPick("EEC")}>
         <div>
-          <div className="eyebrow"><span className="dot"></span>OCA</div>
-          <div className="title">Curricular Affairs<br/>Meetings</div>
+          <div className="eyebrow"><span className="dot"></span>Executive Education Committee</div>
+          <div className="title">EEC Meetings</div>
           <div className="stats">
-            <span>Mon 10am–12pm · Thu 1:30–2:30pm</span>
-            {ocaNext && <>
+            {eecFiled > 0 && <span>{eecFiled} meetings on record</span>}
+            {eecNext && <>
               <span className="sep"></span>
-              <span>Next · {window.MS_DATE.parseLocal(ocaNext.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</span>
+              <span>Next · {window.MS_DATE.parseLocal(eecNext.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</span>
             </>}
           </div>
         </div>
         <div className="chev"><Chev size={14} /></div>
       </button>
 
-      {/* 2x2 committee grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 14 }}>
-        {tiles.map(t => <CommitteeTile key={t.id} c={t} onPick={onPick} />)}
+      {/* 2×2 subcommittee grid */}
+      <div style={{ fontSize: 10.5, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--grey-7)", fontWeight: 600, margin: "20px 4px 10px" }}>
+        Subcommittees
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        {subs.map(t => <CommitteeTile key={t.id} c={t} onPick={onPick} />)}
       </div>
 
       {/* Explore the rest of the desktop dashboard from here */}
       {window.MobileSections && <window.MobileSections.ExploreList onPick={onSection} />}
 
       <div style={{ fontSize: 10.5, color: "var(--grey-7)", textAlign: "center", marginTop: 22, lineHeight: 1.55 }}>
-        16 EEC minutes filed through May 2026. Subcommittee minutes (PCCS · CCS · AES · CIS) and OCA minutes pending intake from each chair.
+        {eecFiled} EEC meetings on record. Subcommittee minutes (PCCS · CCS · CIS · AES) populate as each chair files them; upcoming meetings show their planned agenda.
       </div>
     </div>
   );
@@ -823,6 +861,9 @@ function CommitteeScreen({ committeeId, onPick }) {
   const entries = window.MOBILE_SCHEDULE.committeeMeetings(committeeId);
   const bodyRef = React.useRef(null);
 
+  const stripRef = React.useRef(null);
+  const [activeMonth, setActiveMonth] = useStateMA(null);
+
   // Group by month
   const grouped = useMemoMA(() => {
     const out = new Map();
@@ -834,30 +875,63 @@ function CommitteeScreen({ committeeId, onPick }) {
     return [...out.entries()];
   }, [committeeId]);
 
-  // Open scrolled to the current month (or closest upcoming month if today has no entries).
-  useEffectMA(() => {
-    if (!bodyRef.current) return;
+  // Months for the jump strip, chronological (oldest → newest).
+  const stripMonths = useMemoMA(() => grouped.map(([m]) => m).sort(), [grouped]);
+
+  // The month to open on: the current month, else the nearest upcoming one.
+  const anchorMonth = useMemoMA(() => {
     const todayKey = window.MS_DATE.ymdLocal(new Date()).slice(0, 7);
-    const groups = [...bodyRef.current.querySelectorAll("[data-month]")];
-    let target = groups.find(g => g.dataset.month === todayKey);
-    if (!target) {
-      // groups are in DOM order = descending. Walk ascending to find first >= today.
-      target = [...groups].reverse().find(g => g.dataset.month >= todayKey);
-    }
-    if (target) {
-      bodyRef.current.scrollTop = target.offsetTop - bodyRef.current.offsetTop - 4;
-    }
+    if (stripMonths.includes(todayKey)) return todayKey;
+    const upcoming = stripMonths.filter(m => m >= todayKey);
+    return upcoming.length ? upcoming[0] : (stripMonths[stripMonths.length - 1] || null);
+  }, [stripMonths]);
+
+  // Scroll the list so a given month sits just under the sticky strip.
+  function scrollToMonth(key, smooth) {
+    const body = bodyRef.current;
+    if (!body || !key) return;
+    const target = body.querySelector(`[data-month="${key}"]`);
+    if (!target) return;
+    const stripH = stripRef.current ? stripRef.current.offsetHeight : 0;
+    const top = target.offsetTop - body.offsetTop - stripH - 6;
+    body.scrollTo({ top: Math.max(0, top), behavior: smooth ? "smooth" : "auto" });
+  }
+
+  // Open scrolled to the anchor month.
+  useEffectMA(() => {
+    setActiveMonth(anchorMonth);
+    scrollToMonth(anchorMonth, false);
   }, [committeeId, grouped.length]);
+
+  // Keep the active chip centered in the strip as it changes.
+  useEffectMA(() => {
+    if (!stripRef.current || !activeMonth) return;
+    const chip = stripRef.current.querySelector(`[data-chip="${activeMonth}"]`);
+    if (chip) chip.scrollIntoView({ inline: "center", block: "nearest" });
+  }, [activeMonth]);
+
+  // Scroll-spy: highlight the month currently sitting at the top of the list.
+  function onBodyScroll() {
+    const body = bodyRef.current;
+    if (!body || !stripMonths.length) return;
+    const stripH = stripRef.current ? stripRef.current.offsetHeight : 0;
+    let current = null;
+    body.querySelectorAll("[data-month]").forEach(g => {
+      const top = g.offsetTop - body.offsetTop - body.scrollTop - stripH;
+      if (top <= 12) current = g.dataset.month; // last group whose header has passed the strip
+    });
+    if (current && current !== activeMonth) setActiveMonth(current);
+  }
 
   const c = getCommittee(committeeId);
   const headerInfo = committeeId === "OCA"
     ? { eyebrow: "Office of Curricular Affairs", title: "Curricular Affairs Meetings", sub: "Weekly operational meetings of the Office — Mondays 10 am – 12 pm and Thursdays 1:30 – 2:30 pm. Minutes are filed separately from the EEC." }
     : { eyebrow: c.short + " · " + (c.cadence?.split("(")[0].trim() || ""), title: c.name, sub: c.charge };
 
-  const filedCount = entries.filter(e => e.kind === "filed").length;
+  const filedCount = entries.filter(e => e.kind === "filed" && e.m && e.m.minutesStatus === "Approved").length;
 
   return (
-    <div className="m-body" ref={bodyRef}>
+    <div className="m-body" ref={bodyRef} onScroll={onBodyScroll}>
       <div className="m-section-head" style={{ padding: "10px 4px 12px" }}>
         <div className="eyebrow">{headerInfo.eyebrow}</div>
         <h2>{headerInfo.title}</h2>
@@ -872,6 +946,27 @@ function CommitteeScreen({ committeeId, onPick }) {
           </div>
         )}
       </div>
+
+      {stripMonths.length > 1 && (
+        <div className="m-month-strip" ref={stripRef}>
+          {stripMonths.map(key => {
+            const md = window.MS_DATE.parseLocal(key + "-01");
+            const isActive = key === activeMonth;
+            return (
+              <button
+                key={key}
+                data-chip={key}
+                className={"m-month-chip" + (isActive ? " active" : "")}
+                style={isActive ? { background: c.deep, borderColor: c.deep, color: "#fff" } : null}
+                onClick={() => { setActiveMonth(key); scrollToMonth(key, true); }}
+              >
+                {md.toLocaleDateString("en-US", { month: "short" })}
+                <span className="yr">'{String(md.getFullYear()).slice(-2)}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {entries.length === 0 && (
         <div className="m-empty">
@@ -917,7 +1012,7 @@ function MeetingRow({ entry, committee, onPick }) {
   const today = new Date(); today.setHours(0,0,0,0);
   const future = d >= today;
   const m = entryToMeeting(entry);
-  const filed = !m.scheduled;                 // true only for approved minutes
+  const filed = !m.scheduled;                 // approved minutes only
   const items = (m.items || []).slice(0, 3);
   const extra = (m.items || []).length - items.length;
 
@@ -1097,8 +1192,8 @@ function DetailScreen({ entry, kind, onItem }) {
 
 function SummaryDetail({ m, c, onItem }) {
   const items = m.items || [];
-  const motions = m.scheduled ? [] : window.EEC.MOTIONS.filter(v => v.meetingId === m.id);
   const isPlanned = !!m.scheduled;
+  const motions = isPlanned ? [] : window.EEC.MOTIONS.filter(v => v.meetingId === m.id);
   return (
     <div className="m-body">
       <div className="m-section-head">
