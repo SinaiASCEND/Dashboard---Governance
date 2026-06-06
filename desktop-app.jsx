@@ -43,39 +43,6 @@
 .d-hero .cname { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--ink); }
 .d-hero .cname .sw { width: 9px; height: 9px; border-radius: 2px; }
 .d-hero .open { position: absolute; right: 16px; bottom: 16px; color: var(--grey-7); display: inline-flex; }
-
-/* Meetings: month tiles + season bands */
-.d-mband { margin-top: 24px; }
-.d-mband .lbl { font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 600; color: var(--grey-11); display: flex; align-items: baseline; gap: 10px; margin: 0 0 13px; }
-.d-mband .lbl .n { color: var(--grey-7); letter-spacing: 0; text-transform: none; font-weight: 500; }
-.d-mgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-@media (max-width: 900px) { .d-mgrid { grid-template-columns: repeat(2, 1fr); } }
-.d-mtile { position: relative; overflow: hidden; text-align: left; border: 1px solid var(--grey-2); border-radius: var(--radius-lg); padding: 16px 18px; background: var(--paper); box-shadow: var(--shadow-sm); cursor: pointer; font: inherit; color: inherit; display: block; transition: box-shadow .16s ease, transform .16s ease; min-height: 98px; }
-.d-mtile:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
-.d-mtile.is-today { border-color: var(--brand-cyan); box-shadow: 0 0 0 1px var(--brand-cyan), var(--shadow-sm); }
-.d-mtile .accent { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
-.d-mtile .mo { font-family: var(--serif); font-size: 20px; font-weight: 600; letter-spacing: -0.02em; color: var(--ink); line-height: 1.1; }
-.d-mtile .mo .yr { color: var(--grey-7); font-weight: 500; }
-.d-mtile .dt { font-size: 12px; color: var(--grey-11); margin-top: 3px; font-weight: 500; }
-.d-mtile .foot { display: flex; align-items: center; gap: 8px; margin-top: 13px; flex-wrap: wrap; }
-.d-mtile .cdots { display: inline-flex; gap: 3px; align-items: center; }
-.d-mtile .cdots i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
-.d-mtile.empty { cursor: default; box-shadow: none; border-style: dashed; background: transparent; }
-.d-mtile.empty:hover { transform: none; box-shadow: none; }
-.d-mtile.empty .mo { color: var(--grey-7); font-weight: 500; }
-.d-mtile.empty .dt { font-style: italic; color: var(--grey-7); }
-.d-mtile.is-open { box-shadow: 0 0 0 1px var(--brand-violet), var(--shadow-sm); }
-
-.d-season { width: 100%; text-align: left; border: 1px solid var(--grey-2); border-radius: var(--radius-lg); padding: 16px 20px; background: var(--paper); box-shadow: var(--shadow-sm); cursor: pointer; font: inherit; color: inherit; display: flex; align-items: center; gap: 14px; position: relative; overflow: hidden; margin-bottom: 12px; transition: box-shadow .16s ease; }
-.d-season:hover { box-shadow: var(--shadow-md); }
-.d-season .accent { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
-.d-season .lbl2 { font-family: var(--serif); font-size: 18px; font-weight: 600; color: var(--ink); }
-.d-season .rng { font-size: 12px; color: var(--grey-11); margin-top: 1px; }
-.d-season .cnt { margin-left: auto; display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--grey-11); }
-.d-season .cnt .num { font-family: var(--serif); font-weight: 700; font-size: 17px; color: var(--ink); }
-.d-season .tw { transition: transform .18s ease; color: var(--grey-7); display: inline-flex; }
-.d-season.open .tw { transform: rotate(90deg); }
-.d-exp { border: 1px solid var(--grey-2); border-radius: var(--radius-lg); overflow: hidden; margin: -2px 0 16px; }
 .d-hero.next { background: linear-gradient(180deg, var(--brand-cyan-tint), var(--paper) 70%); }
 .d-hero.empty { cursor: default; box-shadow: none; background: var(--grey-1); border-style: dashed; }
 .d-hero.empty:hover { transform: none; box-shadow: none; }
@@ -107,12 +74,6 @@
 .d-cc .row2 { display:flex; gap: 16px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--grey-2); }
 .d-cc .stat .n { font-family: var(--serif); font-size: 18px; font-weight: 700; line-height: 1; }
 .d-cc .stat .l { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--grey-7); margin-top: 3px; }
-.d-cc.wide { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 28px; }
-.d-cc.wide .short { font-size: 30px; margin: 0; }
-.d-cc.wide .nm { min-height: 0; max-width: 460px; }
-.d-cc.wide .row2 { margin: 0; padding: 0; border: 0; gap: 28px; }
-.d-cc.wide .nextline { grid-column: 2 / 4; }
-@media (max-width: 720px) { .d-cc.wide { grid-template-columns: 1fr; gap: 12px; } .d-cc.wide .row2 { padding-top: 12px; border-top: 1px solid var(--grey-2); } }
 
 /* generic two-column section grid */
 .d-grid2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 18px; align-items: start; }
@@ -191,7 +152,6 @@
 .d-hbars .hb .lbl .std { font-family: var(--mono); color: var(--grey-7); margin-right: 6px; }
 .d-hbars .hb .track { flex: 1; height: 16px; background: var(--grey-1); border-radius: 4px; overflow:hidden; display:flex; }
 .d-hbars .hb .track .seg { height: 100%; }
-.d-hbars .hb .track .fill { height: 100%; display: flex; min-width: 2px; }
 .d-hbars .hb .n { flex: 0 0 auto; font-family: var(--mono); font-size: 11px; color: var(--grey-11); min-width: 28px; text-align:right; }
 .d-stacklegend { display:flex; gap: 16px; margin-bottom: 14px; font-size: 11.5px; color: var(--grey-11); }
 .d-stacklegend .it { display:flex; align-items:center; gap:6px; } .d-stacklegend .it .sw { width:11px; height:11px; border-radius:3px; }
@@ -438,10 +398,8 @@
           {doms.map(([d, cts]) => (
             <div className="hb" key={d}>
               <span className="lbl">{d}</span>
-              <span className="track">
-                <span className="fill" style={{ width: Math.max(2, (cts.total / max) * 100) + "%" }}>
-                  {SEG.map(([k, c]) => (cts[k] ? <span key={k} className="seg" style={{ width: (cts[k] / cts.total) * 100 + "%", background: c }} title={`${k}: ${cts[k]}`} /> : null))}
-                </span>
+              <span className="track" style={{ width: Math.max(8, (cts.total / max) * 100) + "%", flex: "none" }}>
+                {SEG.map(([k, c]) => (cts[k] ? <span key={k} className="seg" style={{ width: (cts[k] / cts.total) * 100 + "%", background: c }} title={`${k}: ${cts[k]}`} /> : null))}
               </span>
               <span className="n">{cts.total}</span>
             </div>
@@ -456,7 +414,7 @@
     { group: "Overview", items: [["overview", "Dashboard", "dash"]] },
     { group: "Governance", items: [["meetings", "Meetings", "cal"], ["motions", "Motions & Votes", "gavel"], ["actions", "Action Plans", "check"]] },
     { group: "People", items: [["members", "Members", "users"], ["attendance", "Attendance", "grid"]] },
-    { group: "Library", items: [["reviews", "Curriculum Reviews", "book"], ["policies", "Policies", "doc"]] },
+    { group: "Library", items: [["reviews", "Curriculum Reviews", "book"], ["policies", "Policies", "doc"], ["bylaws", "Bylaws & Charters", "doc", "bylaws.html"]] },
   ];
 
   function Sidebar({ section, onNav, badges }) {
@@ -469,8 +427,8 @@
         {NAV.map((g) => (
           <div className="group" key={g.group}>
             <div className="group-label">{g.group}</div>
-            {g.items.map(([key, label, icon]) => (
-              <div key={key} className={"nav-item" + (section === key ? " active" : "")} onClick={() => onNav(key)}>
+            {g.items.map(([key, label, icon, href]) => (
+              <div key={key} className={"nav-item" + (section === key ? " active" : "")} onClick={() => href ? window.open(href, "_blank", "noopener") : onNav(key)}>
                 <span style={{ display: "grid", placeItems: "center", color: section === key ? "var(--brand-cyan-deep)" : "var(--grey-7)" }}>
                   <Icon d={ICONS[icon]} size={15} sw={1.9} />
                 </span>
@@ -568,40 +526,28 @@
         </div>
 
         <div className="section-head"><h2 style={{ fontSize: 17 }}>Committees</h2></div>
-        {(() => {
-          const CommCard = ({ id, wide }) => {
+        <div className="d-cards" style={{ marginBottom: 24 }}>
+          {COMMITTEE_IDS.map((id) => {
             const c = cmt(id);
             const cFiled = filed.filter((m) => m.committee === id).length;
             const next = window.MOBILE_SCHEDULE.nextMeeting ? window.MOBILE_SCHEDULE.nextMeeting(id) : null;
             const total = (c.votingSeats || 0) + (c.nonVotingSeats || 0);
             return (
-              <div className={"card d-cc" + (wide ? " wide" : "")} onClick={() => onNav("meetings", id)}>
+              <div className="card d-cc" key={id} onClick={() => onNav("meetings", id)}>
                 <span className="stripe" style={{ background: c.color }} />
-                <div>
-                  <div className="short" style={{ color: c.deep }}>{c.short}</div>
-                  <div className="nm">{c.name}</div>
-                </div>
+                <div className="short" style={{ color: c.deep }}>{c.short}</div>
+                <div className="nm">{c.name}</div>
                 <div className="row2">
                   <div className="stat"><div className="n">{c.votingSeats}<span style={{ fontSize: 11, color: "var(--grey-7)", fontWeight: 400 }}>/{total}</span></div><div className="l">Voting / seats</div></div>
                   <div className="stat"><div className="n">{c.quorum}</div><div className="l">Quorum</div></div>
                   <div className="stat"><div className="n">{cFiled || "—"}</div><div className="l">On record</div></div>
                 </div>
-                <div className="nextline">
-                  {next && <div style={{ fontSize: 11, color: "var(--grey-11)" }}>Next · <strong style={{ color: "var(--ink-2)" }}>{fmt(next.date, "md")}</strong></div>}
-                  {!cFiled && id !== "EEC" && <div style={{ fontSize: 11, fontStyle: "italic", color: "var(--grey-7)" }}>Minutes pending intake</div>}
-                </div>
+                {next && <div style={{ marginTop: 10, fontSize: 11, color: "var(--grey-11)" }}>Next · <strong style={{ color: "var(--ink-2)" }}>{fmt(next.date, "md")}</strong></div>}
+                {!cFiled && id !== "EEC" && <div style={{ marginTop: 10, fontSize: 11, fontStyle: "italic", color: "var(--grey-7)" }}>Minutes pending intake</div>}
               </div>
             );
-          };
-          return (
-            <div style={{ marginBottom: 24 }}>
-              <CommCard id="EEC" wide />
-              <div className="d-cards" style={{ marginTop: 14 }}>
-                {COMMITTEE_IDS.filter((id) => id !== "EEC").map((id) => <CommCard key={id} id={id} />)}
-              </div>
-            </div>
-          );
-        })()}
+          })}
+        </div>
 
         <div className="d-grid2">
           <div className="card d-listcard">
@@ -696,151 +642,22 @@
     );
   }
 
-  // Current cycle AY 2026–27 (Jul 2026 → Jun 2027) is monthly across every
-  // committee, so it renders as 12 month tiles; older meetings collapse into
-  // season tiles (Spring 2026, Fall 2025) that expand on click.
-  const AY2627_MONTHS = [
-    "2026-07", "2026-08", "2026-09", "2026-10", "2026-11", "2026-12",
-    "2027-01", "2027-02", "2027-03", "2027-04", "2027-05", "2027-06",
-  ];
-  function seasonOf(date) {
-    const k = String(date).slice(0, 7);
-    if (k >= "2026-07" && k <= "2027-06") return "AY2627";
-    if (k >= "2026-01" && k <= "2026-06") return "SPR26";
-    if (k >= "2025-07" && k <= "2025-12") return "FALL25";
-    return k < "2025-07" ? "EARLIER" : "LATER";
-  }
-
   function Meetings({ committee, setCommittee, onSelect }) {
     const e = E();
     const rows = useMemo(() => allMeetings(committee), [committee]);
     const todayStr = (window.MS_DATE && window.MS_DATE.ymdLocal) ? window.MS_DATE.ymdLocal(new Date()) : new Date().toISOString().slice(0, 10);
-    const todayMonth = todayStr.slice(0, 7);
-    const [open, setOpen] = useState(null); // expanded month ("m:YYYY-MM") or season ("s:ID")
-
-    const { past, next } = useMemo(() => {
+    const { past, next, rest } = useMemo(() => {
       const future = rows.filter((m) => m.date >= todayStr).sort((a, b) => a.date.localeCompare(b.date));
-      const earlier = rows.filter((m) => m.date < todayStr);
-      return { past: earlier[0] || null, next: future[0] || null };
+      const earlier = rows.filter((m) => m.date < todayStr); // rows are already newest-first
+      const nx = future[0] || null;
+      const pa = earlier[0] || null;
+      const keep = new Set([nx && nx.id, pa && pa.id].filter(Boolean));
+      return { past: pa, next: nx, rest: rows.filter((m) => !keep.has(m.id)) };
     }, [rows, todayStr]);
-
-    // Bucket meetings into the current cycle (by month) and prior seasons.
-    const bands = useMemo(() => {
-      const byMonth = {}, spr = [], fall = [], earlier = [], later = [];
-      for (const m of rows) {
-        switch (seasonOf(m.date)) {
-          case "AY2627": (byMonth[m.date.slice(0, 7)] = byMonth[m.date.slice(0, 7)] || []).push(m); break;
-          case "SPR26":  spr.push(m); break;
-          case "FALL25": fall.push(m); break;
-          case "EARLIER": earlier.push(m); break;
-          default: later.push(m);
-        }
-      }
-      return { byMonth, spr, fall, earlier, later };
-    }, [rows]);
-
-    function statusPill(m) {
-      if (isFiled(m)) return <span className={"pill " + minutesPill(m.minutesStatus)} style={{ fontSize: 10 }}>Minutes</span>;
-      if (m.planned) return <span className="pill cyan" style={{ fontSize: 10 }}>Agenda set</span>;
-      return <span className="pill muted" style={{ fontSize: 10 }}>Scheduled</span>;
-    }
-
-    function MiniList({ list }) {
-      return (
-        <div className="d-exp">
-          <table className="tbl">
-            <thead><tr><th style={{ paddingLeft: 16 }}>Date</th><th>Committee</th><th>Type</th><th className="num">Agenda</th><th className="num">Motions</th><th>Status</th></tr></thead>
-            <tbody>
-              {list.map((m) => {
-                const motions = e.MOTIONS.filter((v) => v.meetingId === m.id).length;
-                const nItems = (m.items || []).length;
-                return (
-                  <tr key={m.id} className="row-link" onClick={() => onSelect({ type: "meeting", id: m.id })}>
-                    <td style={{ paddingLeft: 16, whiteSpace: "nowrap" }} className="mono">{fmt(m.date, "mdy")}</td>
-                    <td><CDot id={m.committee} /></td>
-                    <td style={{ maxWidth: 280 }}>{m.type.replace("Regular Scheduled Meeting", "Regular")}</td>
-                    <td className="num">{nItems || "—"}</td>
-                    <td className="num">{motions || "—"}</td>
-                    <td>{statusPill(m)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      );
-    }
-
-    function MonthTile({ monthKey }) {
-      const md = D(monthKey + "-01");
-      const moName = md.toLocaleDateString("en-US", { month: "long" });
-      const list = (bands.byMonth[monthKey] || []).slice().sort((a, b) => a.date.localeCompare(b.date));
-      if (list.length === 0) {
-        return (
-          <div className="d-mtile empty">
-            <span className="accent" style={{ background: "var(--grey-3)" }} />
-            <div className="mo">{moName} <span className="yr">{md.getFullYear()}</span></div>
-            <div className="dt">no meeting</div>
-          </div>
-        );
-      }
-      // Single meeting → open it directly (the normal per-committee case).
-      if (list.length === 1) {
-        const m = list[0];
-        const c = cmt(m.committee);
-        const dd = D(m.date);
-        return (
-          <button className={"d-mtile" + (monthKey === todayMonth ? " is-today" : "")} onClick={() => onSelect({ type: "meeting", id: m.id })}>
-            <span className="accent" style={{ background: c.color }} />
-            <div className="mo">{moName} <span className="yr">{md.getFullYear()}</span></div>
-            <div className="dt">{dd.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</div>
-            <div className="foot">{statusPill(m)}{(m.items || []).length > 0 && <span className="t-mono" style={{ fontSize: 10.5, color: "var(--grey-7)" }}>{(m.items || []).length} item{(m.items || []).length === 1 ? "" : "s"}</span>}</div>
-          </button>
-        );
-      }
-      // Multiple committees this month (ALL view) → expand inline.
-      const key = "m:" + monthKey;
-      const isOpen = open === key;
-      return (
-        <button className={"d-mtile" + (isOpen ? " is-open" : "")} onClick={() => setOpen(isOpen ? null : key)}>
-          <span className="accent" style={{ background: "var(--brand-violet)" }} />
-          <div className="mo">{moName} <span className="yr">{md.getFullYear()}</span></div>
-          <div className="dt">{list.length} meetings</div>
-          <div className="foot">
-            <span className="cdots">{list.map((m) => <i key={m.id} style={{ background: cmt(m.committee).color }} title={cmt(m.committee).short} />)}</span>
-          </div>
-        </button>
-      );
-    }
-
-    function Season({ id, label, range, list }) {
-      if (!list.length) return null;
-      const key = "s:" + id;
-      const isOpen = open === key;
-      const accent = cmt(committee === "ALL" ? "EEC" : committee).color;
-      return (
-        <div>
-          <button className={"d-season" + (isOpen ? " open" : "")} onClick={() => setOpen(isOpen ? null : key)}>
-            <span className="accent" style={{ background: accent }} />
-            <div>
-              <div className="lbl2">{label}</div>
-              <div className="rng">{range}</div>
-            </div>
-            <div className="cnt">
-              <span><span className="num">{list.length}</span> meeting{list.length === 1 ? "" : "s"}</span>
-              <span className="tw"><Icon d={ICONS.chev} size={16} /></span>
-            </div>
-          </button>
-          {isOpen && <MiniList list={list} />}
-        </div>
-      );
-    }
-
-    const hasPrior = bands.spr.length || bands.fall.length || bands.earlier.length;
 
     return (
       <>
-        <div className="d-head"><h1>Meetings &amp; Minutes</h1><div className="lede">The two cards jump to the most recent and next meeting. Below, the current cycle (AY 2026–27) shows as month tiles; earlier meetings collapse into season tiles you can expand.</div></div>
+        <div className="d-head"><h1>Meetings &amp; Minutes</h1><div className="lede">The two cards below jump to the most recent meeting and the next one coming up, based on today's date. Everything else is listed underneath.</div></div>
         <CommitteeFilter value={committee} onChange={setCommittee} />
         {rows.length === 0 ? (
           <div className="d-empty"><h3>Pending intake</h3><p>No meetings on record for this committee yet.</p></div>
@@ -850,33 +667,35 @@
               <MeetingHero kind="past" m={past} onSelect={onSelect} todayStr={todayStr} />
               <MeetingHero kind="next" m={next} onSelect={onSelect} todayStr={todayStr} />
             </div>
-
-            <div className="d-mband">
-              <div className="lbl">AY 2026–27 <span className="n">July 2026 – June 2027</span></div>
-              <div className="d-mgrid">
-                {AY2627_MONTHS.map((mk) => <MonthTile key={mk} monthKey={mk} />)}
-              </div>
-              {open && open.startsWith("m:") && bands.byMonth[open.slice(2)] && (
-                <div style={{ marginTop: 14 }}>
-                  <MiniList list={bands.byMonth[open.slice(2)].slice().sort((a, b) => a.date.localeCompare(b.date))} />
+            {rest.length > 0 && (
+              <>
+                <div className="d-rest-head">All meetings · {rest.length}</div>
+                <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+                  <table className="tbl">
+                    <thead><tr><th style={{ paddingLeft: 16 }}>Date</th><th>Committee</th><th>Type</th><th className="num">Agenda</th><th className="num">Motions</th><th>Attendance</th><th>Status</th></tr></thead>
+                    <tbody>
+                      {rest.map((m) => {
+                        const motions = e.MOTIONS.filter((v) => v.meetingId === m.id).length;
+                        const att = m.attendanceRate != null ? Math.round(m.attendanceRate * 100) + "%" : "—";
+                        const nItems = (m.items || []).length;
+                        const statusLabel = m.planned ? "Agenda set" : m.minutesStatus;
+                        const statusCls = m.planned ? "cyan" : minutesPill(m.minutesStatus);
+                        return (
+                          <tr key={m.id} className="row-link" onClick={() => onSelect({ type: "meeting", id: m.id })}>
+                            <td style={{ paddingLeft: 16, whiteSpace: "nowrap" }} className="mono">{fmt(m.date, "mdy")}</td>
+                            <td><CDot id={m.committee} /></td>
+                            <td style={{ maxWidth: 280 }}>{m.type.replace("Regular Scheduled Meeting", "Regular")}</td>
+                            <td className="num">{nItems || "—"}</td>
+                            <td className="num">{motions || "—"}</td>
+                            <td className="t-mono" style={{ color: "var(--grey-11)" }}>{att}</td>
+                            <td><span className={"pill " + statusCls}>{statusLabel}</span></td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-              )}
-            </div>
-
-            {hasPrior ? (
-              <div className="d-mband">
-                <div className="lbl">Earlier meetings</div>
-                <Season id="SPR26" label="Spring 2026" range="January – June 2026" list={bands.spr} />
-                <Season id="FALL25" label="Fall 2025" range="July – December 2025" list={bands.fall} />
-                {bands.earlier.length > 0 && <Season id="EARLIER" label="Earlier" range="before July 2025" list={bands.earlier} />}
-              </div>
-            ) : null}
-
-            {bands.later.length > 0 && (
-              <div className="d-mband">
-                <div className="lbl">Beyond AY 2026–27</div>
-                <Season id="LATER" label="Later meetings" range="after June 2027" list={bands.later} />
-              </div>
+              </>
             )}
           </>
         )}
