@@ -242,73 +242,6 @@ const MOBILE_CSS = `
 }
 .m-meet-row ul.agenda li.more::before { display: none; }
 
-/* ── Meetings: season bands + month tiles ──────────────────────────────── */
-.m-band-head {
-  font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase;
-  color: var(--grey-11); font-weight: 700;
-  padding: 20px 4px 10px; display: flex; align-items: baseline; gap: 8px;
-}
-.m-band-head .n { font-family: var(--mono); color: var(--grey-7); font-weight: 600; letter-spacing: 0; text-transform: none; }
-.m-mgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.m-mtile {
-  position: relative; overflow: hidden; background: var(--paper);
-  border-radius: 14px; padding: 13px 13px 12px; text-align: left; border: 0;
-  cursor: pointer; display: flex; flex-direction: column; gap: 3px; min-height: 104px;
-  box-shadow: 0 1px 2px rgba(20,20,20,0.04), 0 0 0 1px rgba(20,20,20,0.06);
-  transition: transform .14s ease, box-shadow .14s ease; font: inherit; color: inherit;
-}
-.m-mtile:active { transform: scale(0.98); }
-.m-mtile.is-today { box-shadow: 0 1px 2px rgba(20,20,20,0.04), 0 0 0 1.5px var(--brand-cyan); }
-.m-mtile .stripe { position: absolute; top: 0; left: 0; right: 0; height: 3px; }
-.m-mtile .mo { font-family: var(--serif); font-size: 17px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.08; margin-top: 4px; color: var(--ink); }
-.m-mtile .mo .yr { color: var(--grey-7); font-weight: 500; }
-.m-mtile .dt { font-size: 11px; color: var(--grey-11); font-weight: 600; letter-spacing: 0.02em; }
-.m-mtile .foot { margin-top: auto; display: flex; align-items: center; gap: 6px; padding-top: 9px; }
-.m-mtile .tag { font-size: 9px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; }
-.m-mtile .tag.filed { background: #e7f5ec; color: #1a7f46; }
-.m-mtile .tag.planned { background: var(--brand-violet-tint); color: var(--brand-violet); }
-.m-mtile .tag.sched { background: var(--grey-2); color: var(--grey-11); }
-.m-mtile .cnt { font-size: 10px; color: var(--grey-7); font-family: var(--mono); }
-.m-mtile.empty { cursor: default; box-shadow: 0 0 0 1px var(--grey-2); background: transparent; }
-.m-mtile.empty .mo { color: var(--grey-7); font-weight: 500; }
-.m-mtile.empty .dt { color: var(--grey-7); font-style: italic; font-weight: 500; }
-
-.m-season {
-  width: 100%; text-align: left; border: 0; cursor: pointer; background: var(--paper);
-  border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px;
-  margin-bottom: 10px; position: relative; overflow: hidden; font: inherit; color: inherit;
-  box-shadow: 0 1px 2px rgba(20,20,20,0.04), 0 0 0 1px rgba(20,20,20,0.06);
-}
-.m-season .stripe { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
-.m-season .lbl { font-family: var(--serif); font-size: 16px; font-weight: 600; color: var(--ink); }
-.m-season .rng { font-size: 11px; color: var(--grey-11); margin-top: 1px; }
-.m-season .cnt { margin-left: auto; font-size: 11px; color: var(--grey-11); display: flex; align-items: center; gap: 8px; }
-.m-season .cnt .num { font-family: var(--serif); font-weight: 700; font-size: 15px; color: var(--ink); }
-.m-season .tw { transition: transform .18s ease; color: var(--grey-7); display: inline-flex; }
-.m-season.open .tw { transform: rotate(90deg); }
-.m-season-list { padding: 2px 0 6px; }
-
-/* Most-recent / Next meeting hero pair */
-.m-hero-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
-.m-hero {
-  position: relative; overflow: hidden; text-align: left; border: 0; cursor: pointer;
-  background: var(--paper); border-radius: 14px; padding: 13px 14px;
-  display: flex; flex-direction: column; gap: 3px; min-height: 96px; font: inherit; color: inherit;
-  box-shadow: 0 1px 2px rgba(20,20,20,0.04), 0 0 0 1px rgba(20,20,20,0.06);
-  transition: transform .14s ease;
-}
-.m-hero:active { transform: scale(0.98); }
-.m-hero.next { box-shadow: 0 1px 2px rgba(20,20,20,0.04), 0 0 0 1.5px var(--brand-cyan); }
-.m-hero .accent { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
-.m-hero .eyebrow { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; color: var(--grey-7); display: flex; align-items: center; gap: 5px; }
-.m-hero.next .eyebrow { color: var(--brand-cyan-deep); }
-.m-hero .big { font-family: var(--serif); font-size: 18px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.1; color: var(--ink); margin-top: 3px; }
-.m-hero .rel { font-size: 11px; color: var(--grey-11); }
-.m-hero .tagline { margin-top: auto; padding-top: 8px; }
-.m-hero .tagline .tag { font-size: 9px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; }
-.m-hero.empty { cursor: default; box-shadow: 0 0 0 1px var(--grey-2); background: transparent; }
-.m-hero.empty .big { color: var(--grey-7); font-weight: 500; font-size: 13px; }
-
 /* Meeting detail buttons (2x2) */
 .m-detail-card {
   background: var(--paper); border-radius: 14px;
@@ -584,32 +517,29 @@ function shortAgenda(item) {
   return t || (item.category || "Item");
 }
 
-// ─── Planned (pre-meeting) agenda lookup ──────────────────────────────────────
-// Pulls upcoming agenda items from window.PLANNED_AGENDA (planned-agenda.js) for
-// a committee + date. Normalizes each item so its planned number (`n`) shows in
-// the §badge that AgendaItem reads from `idx`. Returns [] when nothing planned.
-function plannedFor(committee, date) {
-  const raw = (window.PLANNED_AGENDA && window.PLANNED_AGENDA.itemsFor)
+// Planned (forward-looking) agenda items for a scheduled meeting, from the
+// Agenda Tracker (window.PLANNED_AGENDA). Returns [] when none / not loaded.
+function plannedItems(committee, date) {
+  return (window.PLANNED_AGENDA && window.PLANNED_AGENDA.itemsFor)
     ? window.PLANNED_AGENDA.itemsFor(committee, date) : [];
-  return Array.isArray(raw) ? raw.map(it => ({ ...it, idx: it.idx || it.n })) : [];
 }
 
 // ─── Meeting/entry helper ─────────────────────────────────────────────────────
 function entryToMeeting(entry) {
   if (entry.kind === "filed" && entry.m) {
     const m = entry.m;
-    // A filed record that hasn't happened yet (future stub, minutesStatus
-    // "Scheduled") is treated like a scheduled meeting and gets any planned
-    // agenda folded in, exactly as the desktop view does.
-    if (m.minutesStatus === "Scheduled") {
-      const planned = plannedFor(m.committee, m.date);
+    // Placeholder records that are scheduled but not yet minuted (minutesStatus
+    // other than "Approved") are treated as scheduled and get the planned agenda
+    // folded in — same as the desktop dashboard.
+    if (m.minutesStatus !== "Approved") {
+      const planned = plannedItems(m.committee, m.date);
       const items = (m.items && m.items.length) ? m.items : planned;
-      return { ...m, items, scheduled: true, hasPlanned: items.length > 0 };
+      return { ...m, items, scheduled: true, planned: items.length > 0 };
     }
     return { ...m, scheduled: false };
   }
-  // Synthesize a stub for scheduled-only entries (subcommittees, future dates).
-  const planned = plannedFor(entry.committee, entry.date);
+  // Synthesize a stub for scheduled-only entries, folding in any planned agenda.
+  const planned = plannedItems(entry.committee, entry.date);
   return {
     id: `scheduled:${entry.committee}:${entry.date}`,
     date: entry.date,
@@ -623,7 +553,7 @@ function entryToMeeting(entry) {
     attendanceRate: null,
     minutesStatus: "Pending intake",
     scheduled: true,
-    hasPlanned: planned.length > 0,
+    planned: planned.length > 0,
   };
 }
 
@@ -798,12 +728,10 @@ function HomeScreen({ onPick, onSection }) {
   const lastSync = new Date(window.EEC.TODAY);
   const lastSyncStr = lastSync.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
-  // EEC is the dominant body; the four subcommittees sit beneath it.
-  const eec = window.EEC.committeeById["EEC"];
-  const eecFiled = SCHED.filedCount("EEC");
-  const eecNext = SCHED.nextMeeting("EEC");
+  // OCA stats (recurring weekly schedule)
+  const ocaNext = SCHED.nextMeeting("OCA");
 
-  const tiles = ["PCCS", "CCS", "CIS", "AES"].map(id => {
+  const tiles = ["EEC", "PCCS", "CCS", "AES"].map(id => {
     const c = window.EEC.committeeById[id];
     return {
       ...c,
@@ -832,23 +760,23 @@ function HomeScreen({ onPick, onSection }) {
         </div>
       </div>
 
-      {/* EEC dominant hero */}
-      <button className="m-oca" onClick={() => onPick("EEC")}>
+      {/* OCA hero button */}
+      <button className="m-oca" onClick={() => onPick("OCA")}>
         <div>
-          <div className="eyebrow"><span className="dot"></span>EEC</div>
-          <div className="title">Executive Education<br/>Committee</div>
+          <div className="eyebrow"><span className="dot"></span>OCA</div>
+          <div className="title">Curricular Affairs<br/>Meetings</div>
           <div className="stats">
-            <span>{eecFiled} on record</span>
-            {eecNext && <>
+            <span>Mon 10am–12pm · Thu 1:30–2:30pm</span>
+            {ocaNext && <>
               <span className="sep"></span>
-              <span>Next · {window.MS_DATE.parseLocal(eecNext.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</span>
+              <span>Next · {window.MS_DATE.parseLocal(ocaNext.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</span>
             </>}
           </div>
         </div>
         <div className="chev"><Chev size={14} /></div>
       </button>
 
-      {/* Four subcommittees */}
+      {/* 2x2 committee grid */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 14 }}>
         {tiles.map(t => <CommitteeTile key={t.id} c={t} onPick={onPick} />)}
       </div>
@@ -890,159 +818,52 @@ function CommitteeTile({ c, onPick }) {
   );
 }
 
-// ─── Meetings season model ────────────────────────────────────────────────
-// Current cycle AY 2026–27 (Jul 2026 → Jun 2027) is monthly across every
-// committee, so it renders as 12 month tiles. Everything before it collapses
-// into season tiles: Spring 2026 (Jan–Jun 2026) and Fall 2025 (Jul–Dec 2025).
-const AY2627_MONTHS = [
-  "2026-07", "2026-08", "2026-09", "2026-10", "2026-11", "2026-12",
-  "2027-01", "2027-02", "2027-03", "2027-04", "2027-05", "2027-06",
-];
-function seasonOf(date) {
-  const k = String(date).slice(0, 7);
-  if (k >= "2026-07" && k <= "2027-06") return "AY2627";
-  if (k >= "2026-01" && k <= "2026-06") return "SPR26";
-  if (k >= "2025-07" && k <= "2025-12") return "FALL25";
-  return k < "2025-07" ? "EARLIER" : "LATER";
-}
-// Status badge for a tile. filed → minutes on record; otherwise scheduled, with
-// the planned-agenda item count when the Agenda Tracker has items for that date.
-function tileMeta(entry) {
-  if (!entry) return null;
-  if (entry.kind === "filed") {
-    return { tag: "filed", label: "Minutes", count: (entry.m && entry.m.items ? entry.m.items.length : 0) };
-  }
-  const planned = (window.PLANNED_AGENDA && window.PLANNED_AGENDA.itemsFor)
-    ? window.PLANNED_AGENDA.itemsFor(entry.committee, entry.date) : [];
-  return planned.length
-    ? { tag: "planned", label: "Agenda", count: planned.length }
-    : { tag: "sched", label: "Scheduled", count: 0 };
-}
-
-function MonthTile({ monthKey, entry, c, onPick, todayKey }) {
-  const md = window.MS_DATE.parseLocal(monthKey + "-01");
-  const moName = md.toLocaleDateString("en-US", { month: "long" });
-  if (!entry) {
-    return (
-      <div className="m-mtile empty">
-        <span className="stripe" style={{ background: "var(--grey-3)" }} />
-        <div className="mo">{moName} <span className="yr">{md.getFullYear()}</span></div>
-        <div className="dt">no meeting</div>
-      </div>
-    );
-  }
-  const dd = window.MS_DATE.parseLocal(entry.date);
-  const meta = tileMeta(entry);
-  return (
-    <button className={"m-mtile" + (monthKey === todayKey ? " is-today" : "")} onClick={() => onPick(entry)}>
-      <span className="stripe" style={{ background: c.color }} />
-      <div className="mo">{moName} <span className="yr">{md.getFullYear()}</span></div>
-      <div className="dt">{dd.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</div>
-      <div className="foot">
-        <span className={"tag " + meta.tag}>{meta.label}</span>
-        {meta.count > 0 && <span className="cnt">{meta.count} item{meta.count === 1 ? "" : "s"}</span>}
-      </div>
-    </button>
-  );
-}
-
-function SeasonTile({ label, range, entries, c, onPick, defaultOpen }) {
-  const [open, setOpen] = useStateMA(!!defaultOpen);
-  if (!entries.length) return null;
-  return (
-    <div>
-      <button className={"m-season" + (open ? " open" : "")} onClick={() => setOpen(o => !o)}>
-        <span className="stripe" style={{ background: c.color }} />
-        <div>
-          <div className="lbl">{label}</div>
-          <div className="rng">{range}</div>
-        </div>
-        <div className="cnt">
-          <span><span className="num">{entries.length}</span> meeting{entries.length === 1 ? "" : "s"}</span>
-          <span className="tw"><Chev size={14} /></span>
-        </div>
-      </button>
-      {open && (
-        <div className="m-season-list">
-          {entries.map((e, i) => (
-            <MeetingRow key={(e.m && e.m.id) || (e.date + "-" + i)} entry={e} committee={c} onPick={onPick} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Screen: Committee Meetings (month tiles + season bands) ───────────────
-function MeetingHeroM({ kind, entry, c, onPick }) {
-  const isNext = kind === "next";
-  if (!entry) {
-    return (
-      <div className="m-hero empty">
-        <span className="accent" style={{ background: "var(--grey-3)" }} />
-        <div className="eyebrow">{isNext ? "Next meeting" : "Most recent"}</div>
-        <div className="big">{isNext ? "None scheduled" : "None on record"}</div>
-      </div>
-    );
-  }
-  const d = window.MS_DATE.parseLocal(entry.date);
-  const meta = tileMeta(entry);
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const days = Math.round((d - today) / 86400000);
-  const rel = days === 0 ? "Today" : days === 1 ? "Tomorrow" : days === -1 ? "Yesterday"
-    : days > 0 ? `in ${days} days` : `${Math.abs(days)} days ago`;
-  return (
-    <button className={"m-hero" + (isNext ? " next" : "")} onClick={() => onPick(entry)}>
-      <span className="accent" style={{ background: c.color }} />
-      <div className="eyebrow">{isNext ? "Next meeting" : "Most recent"}</div>
-      <div className="big">{d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}<span style={{ color: "var(--grey-7)", fontWeight: 500 }}> {d.getFullYear()}</span></div>
-      <div className="rel">{rel}</div>
-      <div className="tagline"><span className={"tag " + meta.tag} style={
-        meta.tag === "filed" ? { background: "#e7f5ec", color: "#1a7f46" }
-        : meta.tag === "planned" ? { background: "var(--brand-violet-tint)", color: "var(--brand-violet)" }
-        : { background: "var(--grey-2)", color: "var(--grey-11)" }
-      }>{meta.label}</span></div>
-    </button>
-  );
-}
-
+// ─── Screen: Committee Meetings list ──────────────────────────────────────
 function CommitteeScreen({ committeeId, onPick }) {
-  if (committeeId === "OCA") return <OcaScreen onPick={onPick} />;
-
   const entries = window.MOBILE_SCHEDULE.committeeMeetings(committeeId);
-  const c = getCommittee(committeeId);
-  const filedCount = entries.filter(e => e.kind === "filed").length;
-  const todayKey = window.MS_DATE.ymdLocal(new Date()).slice(0, 7);
+  const bodyRef = React.useRef(null);
 
-  // Bucket entries into the current cycle (by month) and the prior seasons.
-  const { byMonth, spr, fall, earlier, later } = useMemoMA(() => {
-    const byMonth = {}, spr = [], fall = [], earlier = [], later = [];
-    for (const e of entries) {
-      switch (seasonOf(e.date)) {
-        case "AY2627": byMonth[e.date.slice(0, 7)] = e; break; // one per month per committee
-        case "SPR26":  spr.push(e); break;
-        case "FALL25": fall.push(e); break;
-        case "EARLIER": earlier.push(e); break;
-        default: later.push(e);
-      }
-    }
-    return { byMonth, spr, fall, earlier, later };
+  // Group by month
+  const grouped = useMemoMA(() => {
+    const out = new Map();
+    entries.forEach(e => {
+      const k = e.date.slice(0, 7);
+      if (!out.has(k)) out.set(k, []);
+      out.get(k).push(e);
+    });
+    return [...out.entries()];
   }, [committeeId]);
 
-  const hasPrior = spr.length || fall.length || earlier.length;
+  // Open scrolled to the current month (or closest upcoming month if today has no entries).
+  useEffectMA(() => {
+    if (!bodyRef.current) return;
+    const todayKey = window.MS_DATE.ymdLocal(new Date()).slice(0, 7);
+    const groups = [...bodyRef.current.querySelectorAll("[data-month]")];
+    let target = groups.find(g => g.dataset.month === todayKey);
+    if (!target) {
+      // groups are in DOM order = descending. Walk ascending to find first >= today.
+      target = [...groups].reverse().find(g => g.dataset.month >= todayKey);
+    }
+    if (target) {
+      bodyRef.current.scrollTop = target.offsetTop - bodyRef.current.offsetTop - 4;
+    }
+  }, [committeeId, grouped.length]);
 
-  // Most-recent (latest past/today) and next (earliest future) meetings.
-  const todayStr = window.MS_DATE.ymdLocal(new Date());
-  const recentEntry = entries.find(e => e.date <= todayStr) || null;      // entries are newest-first
-  const futureSorted = entries.filter(e => e.date > todayStr).sort((a, b) => a.date.localeCompare(b.date));
-  const nextEntry = futureSorted[0] || null;
+  const c = getCommittee(committeeId);
+  const headerInfo = committeeId === "OCA"
+    ? { eyebrow: "Office of Curricular Affairs", title: "Curricular Affairs Meetings", sub: "Weekly operational meetings of the Office — Mondays 10 am – 12 pm and Thursdays 1:30 – 2:30 pm. Minutes are filed separately from the EEC." }
+    : { eyebrow: c.short + " · " + (c.cadence?.split("(")[0].trim() || ""), title: c.name, sub: c.charge };
+
+  const filedCount = entries.filter(e => e.kind === "filed").length;
 
   return (
-    <div className="m-body">
+    <div className="m-body" ref={bodyRef}>
       <div className="m-section-head" style={{ padding: "10px 4px 12px" }}>
-        <div className="eyebrow">{c.short + " · " + (c.cadence ? c.cadence.split("(")[0].trim() : "")}</div>
-        <h2>{c.name}</h2>
-        <div style={{ fontSize: 12, color: "var(--grey-11)", marginTop: 6, lineHeight: 1.45 }}>{c.charge}</div>
+        <div className="eyebrow">{headerInfo.eyebrow}</div>
+        <h2>{headerInfo.title}</h2>
+        <div style={{ fontSize: 12, color: "var(--grey-11)", marginTop: 6, lineHeight: 1.45 }}>
+          {headerInfo.sub}
+        </div>
         {entries.length > 0 && (
           <div style={{ display: "flex", gap: 12, marginTop: 10, fontSize: 11, color: "var(--grey-11)" }}>
             <span><strong style={{ color: "var(--ink)", fontFamily: "var(--mono)" }}>{filedCount}</strong> on record</span>
@@ -1051,13 +872,6 @@ function CommitteeScreen({ committeeId, onPick }) {
           </div>
         )}
       </div>
-
-      {entries.length > 0 && (
-        <div className="m-hero-row">
-          <MeetingHeroM kind="recent" entry={recentEntry} c={c} onPick={onPick} />
-          <MeetingHeroM kind="next" entry={nextEntry} c={c} onPick={onPick} />
-        </div>
-      )}
 
       {entries.length === 0 && (
         <div className="m-empty">
@@ -1071,66 +885,6 @@ function CommitteeScreen({ committeeId, onPick }) {
         </div>
       )}
 
-      {entries.length > 0 && (
-        <>
-          <div className="m-band-head">AY 2026–27 <span className="n">Jul 2026 – Jun 2027</span></div>
-          <div className="m-mgrid">
-            {AY2627_MONTHS.map(mk => (
-              <MonthTile key={mk} monthKey={mk} entry={byMonth[mk]} c={c} onPick={onPick} todayKey={todayKey} />
-            ))}
-          </div>
-
-          {hasPrior ? <div className="m-band-head">Earlier meetings</div> : null}
-          <SeasonTile label="Spring 2026" range="Jan – Jun 2026" entries={spr} c={c} onPick={onPick} />
-          <SeasonTile label="Fall 2025" range="Jul – Dec 2025" entries={fall} c={c} onPick={onPick} />
-          {earlier.length > 0 && <SeasonTile label="Earlier" range="before Jul 2025" entries={earlier} c={c} onPick={onPick} />}
-          {later.length > 0 && (
-            <>
-              <div className="m-band-head">Beyond AY 2026–27</div>
-              <SeasonTile label="Later" range="after Jun 2027" entries={later} c={c} onPick={onPick} defaultOpen />
-            </>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-// OCA keeps its weekly, month-grouped list (it doesn't follow the committee
-// academic-year cadence — it recurs Mondays & Thursdays).
-function OcaScreen({ onPick }) {
-  const entries = window.MOBILE_SCHEDULE.committeeMeetings("OCA");
-  const bodyRef = React.useRef(null);
-  const c = getCommittee("OCA");
-
-  const grouped = useMemoMA(() => {
-    const out = new Map();
-    entries.forEach(e => {
-      const k = e.date.slice(0, 7);
-      if (!out.has(k)) out.set(k, []);
-      out.get(k).push(e);
-    });
-    return [...out.entries()];
-  }, []);
-
-  useEffectMA(() => {
-    if (!bodyRef.current) return;
-    const todayKey = window.MS_DATE.ymdLocal(new Date()).slice(0, 7);
-    const groups = [...bodyRef.current.querySelectorAll("[data-month]")];
-    let target = groups.find(g => g.dataset.month === todayKey);
-    if (!target) target = [...groups].reverse().find(g => g.dataset.month >= todayKey);
-    if (target) bodyRef.current.scrollTop = target.offsetTop - bodyRef.current.offsetTop - 4;
-  }, [grouped.length]);
-
-  return (
-    <div className="m-body" ref={bodyRef}>
-      <div className="m-section-head" style={{ padding: "10px 4px 12px" }}>
-        <div className="eyebrow">Office of Curricular Affairs</div>
-        <h2>Curricular Affairs Meetings</h2>
-        <div style={{ fontSize: 12, color: "var(--grey-11)", marginTop: 6, lineHeight: 1.45 }}>
-          Weekly operational meetings of the Office — Mondays 10 am – 12 pm and Thursdays 1:30 – 2:30 pm. Minutes are filed separately from the EEC.
-        </div>
-      </div>
       {grouped.map(([month, arr]) => {
         const d = window.MS_DATE.parseLocal(month + "-01");
         const isCurrent = month === window.MS_DATE.ymdLocal(new Date()).slice(0, 7);
@@ -1145,7 +899,10 @@ function OcaScreen({ onPick }) {
               )}
             </div>
             {arr.map((e, i) => (
-              <MeetingRow key={(e.m && e.m.id) || (e.date + "-" + i)} entry={e} committee={c} onPick={onPick} />
+              <MeetingRow key={(e.m && e.m.id) || (e.date + "-" + i)}
+                          entry={e}
+                          committee={c}
+                          onPick={onPick} />
             ))}
           </div>
         );
@@ -1159,9 +916,10 @@ function MeetingRow({ entry, committee, onPick }) {
   const d = window.MS_DATE.parseLocal(entry.date);
   const today = new Date(); today.setHours(0,0,0,0);
   const future = d >= today;
-  const isFiled = entry.kind === "filed";
-  const m = entry.m; // only present for filed entries
-  const items = isFiled ? (m.items || []).slice(0, 3) : [];
+  const m = entryToMeeting(entry);
+  const filed = !m.scheduled;                 // true only for approved minutes
+  const items = (m.items || []).slice(0, 3);
+  const extra = (m.items || []).length - items.length;
 
   return (
     <button className="m-meet-row"
@@ -1175,22 +933,22 @@ function MeetingRow({ entry, committee, onPick }) {
       <div style={{ minWidth: 0 }}>
         <div className="meta">
           <span style={{ color: "var(--grey-11)", fontSize: 11 }}>
-            {isFiled
+            {filed
               ? (m.type?.replace("Regular Scheduled Meeting", "Regular") || "Regular")
               : (entry.session || entry.time || "Scheduled")}
           </span>
           <span className={"status" + (future ? " future" : "")}>
-            {isFiled ? m.minutesStatus : (future ? "Scheduled" : "Pending")}
+            {filed ? m.minutesStatus : (future ? "Scheduled" : "Pending")}
           </span>
         </div>
-        {isFiled && items.length > 0 ? (
+        {items.length > 0 ? (
           <ul className="agenda">
             {items.map((it, i) => <li key={i}>{shortAgenda(it)}</li>)}
-            {m.items && m.items.length > 3 && (
-              <li className="more">+{m.items.length - 3} more agenda items</li>
+            {extra > 0 && (
+              <li className="more">+{extra} more {filed ? "agenda" : "planned"} item{extra === 1 ? "" : "s"}</li>
             )}
           </ul>
-        ) : isFiled ? (
+        ) : filed ? (
           <ul className="agenda">
             {(m.topics || []).slice(0, 3).map((t, i) => <li key={i}>{t}</li>)}
           </ul>
@@ -1215,10 +973,11 @@ function MeetingScreen({ entry, onPick }) {
   const govActions = md ? md.actions.filter(a => a.kind === "governance") : [];
   const opActions  = md ? md.actions.filter(a => a.kind === "operational") : [];
   const motions    = m.scheduled ? [] : window.EEC.MOTIONS.filter(v => v.meetingId === m.id);
-  const hasFile = !m.scheduled && window.MOBILE_SCHEDULE.hasMinutesFile(m.committee, m.date);
+  const hasFile = !m.scheduled && window.MOBILE_SCHEDULE.hasMinutesFile(m.date);
+  const hasPlanned = m.scheduled && (m.items?.length > 0);
 
   const buttons = [
-    { kind: "summary",     label: m.scheduled && m.hasPlanned ? "Planned Agenda" : "Meeting Summary", count: (m.items && m.items.length) ? m.items.length : (m.scheduled ? null : 0), sub: m.scheduled ? (m.hasPlanned ? "planned agenda" : "not circulated") : "agenda items", color: "var(--brand-violet)", disabled: m.scheduled && !m.hasPlanned },
+    { kind: "summary",     label: m.scheduled ? "Planned Agenda" : "Meeting Summary", count: (!m.scheduled || hasPlanned) ? (m.items?.length || 0) : null, sub: !m.scheduled ? "agenda items" : (hasPlanned ? "planned items" : "not circulated"), color: "var(--brand-violet)", disabled: m.scheduled && !hasPlanned },
     { kind: "governance",  label: "Governance Action Plans",   count: m.scheduled ? null : govActions.length, sub: m.scheduled ? "pending" : "plans", color: "var(--brand-cyan)",  disabled: m.scheduled },
     { kind: "operational", label: "Operational Action Plans",  count: m.scheduled ? null : opActions.length,  sub: m.scheduled ? "pending" : "plans", color: "var(--good)",        disabled: m.scheduled },
     { kind: "download",    label: hasFile ? "Download Minutes" : "Minutes Unavailable", count: null, sub: hasFile ? ".docx" : (m.scheduled ? "pending intake" : "not on file"), color: hasFile ? "var(--brand-magenta)" : "var(--grey-5)", disabled: !hasFile },
@@ -1241,7 +1000,7 @@ function MeetingScreen({ entry, onPick }) {
             display: "flex", alignItems: "center", gap: 8,
           }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
-            Scheduled — minutes not yet filed
+            {hasPlanned ? "Scheduled — planned agenda below; minutes filed after the meeting" : "Scheduled — minutes not yet filed"}
           </div>
         )}
         <div className="meta-grid">
@@ -1338,50 +1097,44 @@ function DetailScreen({ entry, kind, onItem }) {
 
 function SummaryDetail({ m, c, onItem }) {
   const items = m.items || [];
-  const motions = window.EEC.MOTIONS.filter(v => v.meetingId === m.id);
+  const motions = m.scheduled ? [] : window.EEC.MOTIONS.filter(v => v.meetingId === m.id);
+  const isPlanned = !!m.scheduled;
   return (
     <div className="m-body">
       <div className="m-section-head">
         <div className="eyebrow" style={{ color: c.deep }}>{c.short} · {fmtDate(m.date, "medium")}</div>
-        <h2>{m.scheduled ? "Planned Agenda" : "Meeting Summary"}</h2>
+        <h2>{isPlanned ? "Planned Agenda" : "Meeting Summary"}</h2>
         <div style={{ fontSize: 12, color: "var(--grey-11)", marginTop: 6, lineHeight: 1.5 }}>
-          {m.scheduled
-            ? <>{items.length} planned agenda item{items.length === 1 ? "" : "s"} · circulated before the meeting</>
-            : <>{items.length} agenda item{items.length === 1 ? "" : "s"} · {motions.length} motion{motions.length === 1 ? "" : "s"} voted · {m.present?.length || 0} voting members present</>}
+          {isPlanned
+            ? `${items.length} planned item${items.length === 1 ? "" : "s"} · from the Agenda Tracker · subject to change`
+            : `${items.length} agenda item${items.length === 1 ? "" : "s"} · ${motions.length} motion${motions.length === 1 ? "" : "s"} voted · ${m.present?.length || 0} voting members present`}
         </div>
       </div>
 
       {items.length === 0 && (
         <div className="m-empty">
-          <h3>No agenda items recorded</h3>
-          <p>This meeting's minutes were filed without itemized agenda detail.</p>
+          <h3>{isPlanned ? "No agenda circulated yet" : "No agenda items recorded"}</h3>
+          <p>{isPlanned ? "This meeting is scheduled but no agenda items have been entered in the tracker yet." : "This meeting's minutes were filed without itemized agenda detail."}</p>
         </div>
       )}
 
-      {m.scheduled && items.length > 0 && (
-        <div style={{ fontSize: 11.5, color: "var(--brand-cyan-deep)", background: "var(--brand-cyan-tint)", padding: "8px 12px", borderRadius: 8, marginBottom: 12, lineHeight: 1.45 }}>
-          Planned agenda — items, presenters, and order may change before the meeting. Minutes are filed afterward.
-        </div>
-      )}
       {items.map((it, i) => (
-        <AgendaItem
-          key={i}
-          item={it}
-          onClick={m.scheduled ? null : (() => onItem && onItem("agenda-item", { meetingId: m.id, idx: it.idx }))}
-        />
+        <AgendaItem key={i} item={it} planned={isPlanned}
+                    onClick={(!isPlanned && onItem) ? () => onItem("agenda-item", { meetingId: m.id, idx: it.idx }) : null} />
       ))}
     </div>
   );
 }
 
-function AgendaItem({ item, onClick }) {
+function AgendaItem({ item, onClick, planned }) {
   const cat = (item.category || "").trim().toUpperCase();
   const catStyle =
-    cat.includes("VOTING") ? { background: "var(--brand-magenta)", color: "#fff" } :
+    cat.includes("VOTING") || cat.includes("VOTE") ? { background: "var(--brand-magenta)", color: "#fff" } :
     cat.includes("DISCUSS") ? { background: "var(--brand-cyan-tint)", color: "var(--brand-cyan-deep)" } :
     cat.includes("REVIEW") ? { background: "var(--brand-violet-tint)", color: "var(--brand-violet)" } :
     cat.includes("INFO") ? { background: "var(--grey-2)", color: "var(--grey-11)" } :
     { background: "var(--grey-2)", color: "var(--grey-11)" };
+  const ready = planned && item.ready && /YES/i.test(item.ready);
 
   return (
     <button className="m-agenda-item"
@@ -1395,6 +1148,7 @@ function AgendaItem({ item, onClick }) {
       <div className="top">
         {item.idx && <span className="idx">§{item.idx}</span>}
         {cat && <span className="cat" style={catStyle}>{cat}</span>}
+        {ready && <span className="cat" style={{ background: "var(--good)", color: "#fff" }}>READY</span>}
         {item.lcme && item.lcme.length > 0 && (
           <span style={{ fontSize: 9.5, color: "var(--grey-7)", fontFamily: "var(--mono)", marginLeft: "auto" }}>
             LCME {item.lcme.join(", ")}
@@ -1409,11 +1163,29 @@ function AgendaItem({ item, onClick }) {
           </svg>
         )}
       </div>
+      {item.subitems && item.subitems.length > 0 && (
+        <ul style={{ margin: "6px 0 0", paddingLeft: 16 }}>
+          {item.subitems.map((s, j) => (
+            <li key={j} style={{ fontSize: 11, color: "var(--grey-11)", lineHeight: 1.45 }}>{s}</li>
+          ))}
+        </ul>
+      )}
       {item.outcome && (
         <div className="outcome" style={{
           display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
           overflow: "hidden", color: "var(--grey-11)", fontSize: 11.5,
         }}>{item.outcome}</div>
+      )}
+      {(item.presenter || (planned && (item.owner || item.guests || item.goesToEEC))) && (
+        <div style={{
+          marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--grey-2)",
+          fontSize: 11, color: "var(--grey-11)", lineHeight: 1.5,
+        }}>
+          {planned && item.owner && <div><strong>Subcommittee owner:</strong> {item.owner}</div>}
+          {item.presenter && <div><strong>Presenter:</strong> {item.presenter}</div>}
+          {planned && item.guests && <div><strong>Guests:</strong> {item.guests}</div>}
+          {planned && item.goesToEEC && <div><strong>Feeds EEC:</strong> {fmtDate(item.goesToEEC, "medium")}</div>}
+        </div>
       )}
       {onClick && (
         <div style={{
@@ -1548,7 +1320,7 @@ function ActionRow({ a, accent }) {
 }
 
 function DownloadDetail({ m, c }) {
-  const filename = `${(c.short || m.committee || "EEC").replace(/[^A-Za-z0-9]/g, "")}_Minutes_${m.date}.docx`;
+  const filename = `EEC_Minutes_${m.date}.docx`;
   return (
     <div className="m-body">
       <div className="m-section-head">
