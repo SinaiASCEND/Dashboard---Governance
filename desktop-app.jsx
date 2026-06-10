@@ -722,6 +722,13 @@
     }, [rows, todayStr]);
     const groups = useMemo(() => groupByMonth(rest, (m) => m.date), [rest]);
     const nowKey = todayStr.slice(0, 7);
+    // Start at the current/soonest month and go forward, then back through the past.
+    const ordered = useMemo(() => [...groups].sort((a, b) => {
+      const af = a.key >= nowKey, bf = b.key >= nowKey;
+      if (af !== bf) return af ? -1 : 1;        // upcoming months before past months
+      return af ? a.key.localeCompare(b.key)     // upcoming: soonest first
+                : b.key.localeCompare(a.key);    // past: most recent first
+    }), [groups, nowKey]);
 
     return (
       <>
@@ -738,7 +745,7 @@
             {rest.length > 0 && (
               <>
                 <div className="d-rest-head">All meetings · {rest.length}</div>
-                {groups.map((g) => (
+                {ordered.map((g) => (
                   <React.Fragment key={g.key}>
                     <div className="d-month-sticky">
                       <span className="mlabel">{g.label}</span>
