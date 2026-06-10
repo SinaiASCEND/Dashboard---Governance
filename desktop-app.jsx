@@ -155,6 +155,23 @@
 .d-hbars .hb .n { flex: 0 0 auto; font-family: var(--mono); font-size: 11px; color: var(--grey-11); min-width: 28px; text-align:right; }
 .d-stacklegend { display:flex; gap: 16px; margin-bottom: 14px; font-size: 11.5px; color: var(--grey-11); }
 .d-stacklegend .it { display:flex; align-items:center; gap:6px; } .d-stacklegend .it .sw { width:11px; height:11px; border-radius:3px; }
+.d-meetcard { display:grid; grid-template-columns: 54px 1fr; gap: 14px; width:100%; text-align:left; cursor:pointer; background: var(--paper); padding: 14px 18px; font: inherit; color:inherit; border:1px solid var(--grey-2); border-left:4px solid var(--brand-violet); border-radius:12px; box-shadow:var(--shadow-sm); margin-bottom:10px; transition:box-shadow .15s, transform .15s; }
+.d-meetcard:hover { box-shadow:0 4px 14px rgba(15,30,61,.10); transform:translateY(-1px); }
+.d-month-sticky { position:sticky; top:56px; z-index:10; display:flex; align-items:center; gap:10px; background:var(--grey-1); padding:14px 2px 9px; margin:4px 0 2px; }
+.d-month-sticky .mlabel { font-size:12px; letter-spacing:.10em; text-transform:uppercase; font-weight:700; color:var(--ink-2); }
+.d-month-sticky .mnow { font-size:10px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--brand-cyan-deep); background:var(--brand-cyan-tint); padding:2px 9px; border-radius:999px; }
+.d-month-sticky .mcount { margin-left:auto; font-size:11px; color:var(--grey-11); }
+.d-meetcard .dateblk { display:flex; flex-direction:column; align-items:center; justify-content:center; background: var(--grey-1); border-radius: 8px; padding: 8px 0; }
+.d-meetcard .dateblk .dow { font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--grey-11); font-weight: 700; }
+.d-meetcard .dateblk .day { font-size: 22px; font-weight: 700; line-height: 1; margin: 2px 0; color: var(--ink); }
+.d-meetcard .dateblk .mo { font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--grey-11); font-weight: 600; }
+.d-meetcard .meta { display:flex; align-items:center; gap: 9px; margin-bottom: 5px; font-size: 11.5px; flex-wrap: wrap; }
+.d-meetcard .meta .chip { padding: 1px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: .04em; }
+.d-meetcard ul.agenda { margin: 5px 0 0; padding: 0; list-style: none; display:flex; flex-direction:column; gap: 3px; }
+.d-meetcard ul.agenda li { font-size: 12px; line-height: 1.35; color: var(--ink-2); position: relative; padding-left: 13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.d-meetcard ul.agenda li::before { content:""; position:absolute; left:2px; top:7px; width:4px; height:4px; border-radius:50%; background: var(--grey-7); }
+.d-meetcard ul.agenda li.more { font-style: italic; color: var(--grey-7); }
+.d-meetcard ul.agenda li.more::before { display:none; }
 `;
 
   // ── small utilities ─────────────────────────────────────────────────────
@@ -643,10 +660,11 @@
   }
 
   // Per-month open/collapse state; newest month open by default.
-  function useMonthAccordion() {
+  function useMonthAccordion(defaultKey = null) {
     const [open, setOpen] = useState({});
-    const isOpen = (k, i) => (k in open ? open[k] : i === 0);
-    const toggle = (k, i) => setOpen((o) => ({ ...o, [k]: !(k in o ? o[k] : i === 0) }));
+    const def = (k, i) => (defaultKey != null ? k === defaultKey : i === 0);
+    const isOpen = (k, i) => (k in open ? open[k] : def(k, i));
+    const toggle = (k, i) => setOpen((o) => ({ ...o, [k]: !(k in o ? o[k] : def(k, i)) }));
     return { isOpen, toggle };
   }
 
@@ -703,7 +721,7 @@
       return { past: pa, next: nx, rest: rows.filter((m) => !keep.has(m.id)) };
     }, [rows, todayStr]);
     const groups = useMemo(() => groupByMonth(rest, (m) => m.date), [rest]);
-    const acc = useMonthAccordion();
+    const nowKey = todayStr.slice(0, 7);
 
     return (
       <>
@@ -720,33 +738,48 @@
             {rest.length > 0 && (
               <>
                 <div className="d-rest-head">All meetings · {rest.length}</div>
-                {groups.map((g, gi) => (
-                  <MonthTile key={g.key} label={g.label} count={g.items.length}
-                             open={acc.isOpen(g.key, gi)} onToggle={() => acc.toggle(g.key, gi)}>
-                    <table className="tbl">
-                      <thead><tr><th style={{ paddingLeft: 16 }}>Date</th><th>Committee</th><th>Type</th><th className="num">Agenda</th><th className="num">Motions</th><th>Attendance</th><th>Status</th></tr></thead>
-                      <tbody>
-                        {g.items.map((m) => {
-                          const motions = e.MOTIONS.filter((v) => v.meetingId === m.id).length;
-                          const att = m.attendanceRate != null ? Math.round(m.attendanceRate * 100) + "%" : "—";
-                          const nItems = (m.items || []).length;
-                          const statusLabel = m.planned ? "Agenda set" : m.minutesStatus;
-                          const statusCls = m.planned ? "cyan" : minutesPill(m.minutesStatus);
-                          return (
-                            <tr key={m.id} className="row-link" onClick={() => onSelect({ type: "meeting", id: m.id })}>
-                              <td style={{ paddingLeft: 16, whiteSpace: "nowrap" }} className="mono">{fmt(m.date, "mdy")}</td>
-                              <td><CDot id={m.committee} /></td>
-                              <td style={{ maxWidth: 280 }}>{m.type.replace("Regular Scheduled Meeting", "Regular")}</td>
-                              <td className="num">{nItems || "—"}</td>
-                              <td className="num">{motions || "—"}</td>
-                              <td className="t-mono" style={{ color: "var(--grey-11)" }}>{att}</td>
-                              <td><span className={"pill " + statusCls}>{statusLabel}</span></td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </MonthTile>
+                {groups.map((g) => (
+                  <React.Fragment key={g.key}>
+                    <div className="d-month-sticky">
+                      <span className="mlabel">{g.label}</span>
+                      {g.key === nowKey && <span className="mnow">This month</span>}
+                      <span className="mcount">{g.items.length}</span>
+                    </div>
+                    {g.items.map((m) => {
+                      const c = cmt(m.committee);
+                      const dd = D(m.date);
+                      const motions = e.MOTIONS.filter((v) => v.meetingId === m.id).length;
+                      const items3 = (m.items || []).slice(0, 3);
+                      const nItems = (m.items || []).length;
+                      const statusLabel = m.planned ? "Agenda set" : m.minutesStatus;
+                      const statusCls = m.planned ? "cyan" : minutesPill(m.minutesStatus);
+                      return (
+                        <button key={m.id} className="d-meetcard" style={{ borderLeftColor: c.color }} onClick={() => onSelect({ type: "meeting", id: m.id })}>
+                          <span className="dateblk">
+                            <span className="dow">{dd.toLocaleDateString("en-US", { weekday: "short" })}</span>
+                            <span className="day">{dd.getDate()}</span>
+                            <span className="mo">{dd.toLocaleDateString("en-US", { month: "short" })}</span>
+                          </span>
+                          <span style={{ minWidth: 0 }}>
+                            <span className="meta">
+                              <span className="chip" style={{ background: c.tint, color: c.deep }}>{c.short}</span>
+                              <span style={{ color: "var(--grey-11)" }}>{m.type.replace("Regular Scheduled Meeting", "Regular")}</span>
+                              {nItems > 0 && <span style={{ color: "var(--grey-7)" }}>· {nItems} agenda</span>}
+                              {motions > 0 && <span style={{ color: "var(--grey-7)" }}>· {motions} motion{motions === 1 ? "" : "s"}</span>}
+                              {m.attendanceRate != null && <span style={{ color: "var(--grey-7)" }}>· {Math.round(m.attendanceRate * 100)}% att</span>}
+                              <span className={"pill " + statusCls} style={{ marginLeft: "auto" }}>{statusLabel}</span>
+                            </span>
+                            {items3.length > 0 && (
+                              <ul className="agenda">
+                                {items3.map((it, i) => <li key={i}>{(it && it.title) || it}</li>)}
+                                {nItems > 3 && <li className="more">+{nItems - 3} more</li>}
+                              </ul>
+                            )}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </React.Fragment>
                 ))}
               </>
             )}
