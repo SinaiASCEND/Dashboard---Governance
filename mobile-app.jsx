@@ -250,8 +250,11 @@ const MOBILE_CSS = `
 
 /* Feature tiles: last + next meeting, pinned at top of committee screen */
 .m-feature-pair {
+  position: sticky; top: 0; z-index: 5;
   display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
-  margin: 6px 0 18px;
+  margin: 0 0 14px; padding: 8px 0 10px;
+  background: #F5F6F7;
+  box-shadow: 0 8px 8px -8px rgba(20,20,20,0.10);
 }
 .m-feature {
   background: var(--paper); border-radius: 14px;
@@ -904,6 +907,7 @@ function FeatureMeetingTile({ label, entry, committee, onPick }) {
 function CommitteeScreen({ committeeId, onPick }) {
   const entries = window.MOBILE_SCHEDULE.committeeMeetings(committeeId);
   const bodyRef = React.useRef(null);
+  const featureRef = React.useRef(null);
 
   // Group by month, oldest → newest (ascending). committeeMeetings() returns
   // descending, so sort ascending first; the Map then preserves ascending
@@ -934,6 +938,8 @@ function CommitteeScreen({ committeeId, onPick }) {
   }, [committeeId]);
 
   // Open scrolled to the current month (or closest upcoming month if today has no entries).
+  // Offset by the pinned feature-tile bar so the current month lands just below it
+  // instead of being hidden behind it (and so the tiles themselves stay in view).
   useEffectMA(() => {
     if (!bodyRef.current) return;
     const todayKey = window.MS_DATE.ymdLocal(new Date()).slice(0, 7);
@@ -942,7 +948,11 @@ function CommitteeScreen({ committeeId, onPick }) {
     let target = groups.find(g => g.dataset.month >= todayKey);
     if (!target) target = groups[groups.length - 1]; // everything is in the past
     if (target) {
-      bodyRef.current.scrollTop = target.offsetTop - bodyRef.current.offsetTop - 4;
+      const stickyH = featureRef.current ? featureRef.current.offsetHeight : 0;
+      bodyRef.current.scrollTop = Math.max(
+        0,
+        target.offsetTop - bodyRef.current.offsetTop - stickyH - 8
+      );
     }
   }, [committeeId, grouped.length]);
 
@@ -971,7 +981,7 @@ function CommitteeScreen({ committeeId, onPick }) {
       </div>
 
       {entries.length > 0 && (
-        <div className="m-feature-pair">
+        <div className="m-feature-pair" ref={featureRef}>
           <FeatureMeetingTile label="Last meeting" entry={lastEntry} committee={c} onPick={onPick} />
           <FeatureMeetingTile label="Next meeting" entry={nextEntry} committee={c} onPick={onPick} />
         </div>
