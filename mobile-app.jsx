@@ -248,6 +248,43 @@ const MOBILE_CSS = `
 }
 .m-meet-row ul.agenda li.more::before { display: none; }
 
+/* Feature tiles: last + next meeting, pinned at top of committee screen */
+.m-feature-pair {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  margin: 6px 0 18px;
+}
+.m-feature {
+  background: var(--paper); border-radius: 14px;
+  border: 0; text-align: left; width: 100%; cursor: pointer;
+  padding: 0; overflow: hidden; min-height: 130px;
+  display: flex; flex-direction: column;
+  box-shadow: 0 1px 2px rgba(20,20,20,0.05), 0 0 0 1px rgba(20,20,20,0.06);
+}
+.m-feature .accent { height: 4px; width: 100%; flex: 0 0 4px; }
+.m-feature .pad { padding: 12px 13px 13px; display: flex; flex-direction: column; flex: 1 1 auto; }
+.m-feature .lbl {
+  font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase;
+  font-weight: 700; margin-bottom: 9px;
+}
+.m-feature .dow {
+  font-size: 10.5px; color: var(--grey-11); font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.m-feature .date {
+  font-family: var(--serif); font-size: 23px; font-weight: 700;
+  line-height: 1.05; margin: 1px 0 2px; letter-spacing: -0.01em; color: var(--ink);
+}
+.m-feature .yr { font-size: 11px; color: var(--grey-7); font-weight: 500; }
+.m-feature .foot {
+  margin-top: auto; padding-top: 11px;
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;
+}
+.m-feature .foot .dot { width: 6px; height: 6px; border-radius: 50%; flex: 0 0 6px; }
+.m-feature.empty { cursor: default; }
+.m-feature.empty .pad { justify-content: center; }
+.m-feature .empty-txt { font-size: 12.5px; color: var(--grey-7); font-style: italic; line-height: 1.4; }
+
 /* Meeting detail buttons (2x2) */
 .m-detail-card {
   background: var(--paper); border-radius: 14px;
@@ -805,15 +842,78 @@ function CommitteeTile({ c, onPick }) {
   );
 }
 
+// ─── Feature tiles (last + next meeting) ──────────────────────────────────
+// Relative day phrase, e.g. "in 3 days" / "2 wks ago" / "today".
+function relDays(dateStr) {
+  const d = window.MS_DATE.parseLocal(dateStr);
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  const diff = Math.round((d - t) / 86400000);
+  if (diff === 0) return "today";
+  if (diff === 1) return "tomorrow";
+  if (diff === -1) return "yesterday";
+  const a = Math.abs(diff);
+  const phrase = a < 14 ? `${a} days` : `${Math.round(a / 7)} wks`;
+  return diff > 0 ? `in ${phrase}` : `${phrase} ago`;
+}
+function featureStatus(entry) {
+  const d = window.MS_DATE.parseLocal(entry.date);
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  const future = d >= t;
+  if (entry.kind === "filed" && entry.m) {
+    return { text: entry.m.minutesStatus || "Filed", color: "var(--good)" };
+  }
+  return future
+    ? { text: "Scheduled", color: "var(--brand-cyan-deep)" }
+    : { text: "Minutes pending", color: "var(--grey-7)" };
+}
+function FeatureMeetingTile({ label, entry, committee, onPick }) {
+  const c = committee;
+  if (!entry) {
+    return (
+      <div className="m-feature empty">
+        <div className="accent" style={{ background: "var(--grey-3)" }} />
+        <div className="pad">
+          <div className="lbl" style={{ color: "var(--grey-7)" }}>{label}</div>
+          <div className="empty-txt">
+            {label === "Next meeting" ? "None scheduled yet" : "No meetings on record yet"}
+          </div>
+        </div>
+      </div>
+    );
+  }
+  const d = window.MS_DATE.parseLocal(entry.date);
+  const st = featureStatus(entry);
+  return (
+    <button className="m-feature" onClick={() => onPick(entry)}>
+      <div className="accent" style={{ background: c.color }} />
+      <div className="pad">
+        <div className="lbl" style={{ color: c.deep }}>{label}</div>
+        <div className="dow">{d.toLocaleDateString("en-US", { weekday: "long" })}</div>
+        <div className="date">{d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}</div>
+        <div className="yr">{d.getFullYear()} · {relDays(entry.date)}</div>
+        <div className="foot" style={{ color: st.color }}>
+          <span className="dot" style={{ background: st.color }} />
+          {st.text}
+        </div>
+      </div>
+    </button>
+  );
+}
+
 // ─── Screen: Committee Meetings list ──────────────────────────────────────
 function CommitteeScreen({ committeeId, onPick }) {
   const entries = window.MOBILE_SCHEDULE.committeeMeetings(committeeId);
   const bodyRef = React.useRef(null);
 
-  // Group by month
+  // Group by month, oldest → newest (ascending). committeeMeetings() returns
+  // descending, so sort ascending first; the Map then preserves ascending
+  // month order and each month's entries stay ascending too.
   const grouped = useMemoMA(() => {
+    const asc = [...entries].sort(
+      (a, b) => window.MS_DATE.parseLocal(a.date) - window.MS_DATE.parseLocal(b.date)
+    );
     const out = new Map();
-    entries.forEach(e => {
+    asc.forEach(e => {
       const k = e.date.slice(0, 7);
       if (!out.has(k)) out.set(k, []);
       out.get(k).push(e);
@@ -821,16 +921,26 @@ function CommitteeScreen({ committeeId, onPick }) {
     return [...out.entries()];
   }, [committeeId]);
 
+  // The most recent past meeting and the next upcoming meeting (for the tiles).
+  const { lastEntry, nextEntry } = useMemoMA(() => {
+    const t = new Date(); t.setHours(0, 0, 0, 0);
+    const asc = [...entries].sort(
+      (a, b) => window.MS_DATE.parseLocal(a.date) - window.MS_DATE.parseLocal(b.date)
+    );
+    return {
+      nextEntry: asc.find(e => window.MS_DATE.parseLocal(e.date) >= t) || null,
+      lastEntry: [...asc].reverse().find(e => window.MS_DATE.parseLocal(e.date) < t) || null,
+    };
+  }, [committeeId]);
+
   // Open scrolled to the current month (or closest upcoming month if today has no entries).
   useEffectMA(() => {
     if (!bodyRef.current) return;
     const todayKey = window.MS_DATE.ymdLocal(new Date()).slice(0, 7);
     const groups = [...bodyRef.current.querySelectorAll("[data-month]")];
-    let target = groups.find(g => g.dataset.month === todayKey);
-    if (!target) {
-      // groups are in DOM order = descending. Walk ascending to find first >= today.
-      target = [...groups].reverse().find(g => g.dataset.month >= todayKey);
-    }
+    // groups are in DOM order = ascending. First group >= today is current/next month.
+    let target = groups.find(g => g.dataset.month >= todayKey);
+    if (!target) target = groups[groups.length - 1]; // everything is in the past
     if (target) {
       bodyRef.current.scrollTop = target.offsetTop - bodyRef.current.offsetTop - 4;
     }
@@ -859,6 +969,13 @@ function CommitteeScreen({ committeeId, onPick }) {
           </div>
         )}
       </div>
+
+      {entries.length > 0 && (
+        <div className="m-feature-pair">
+          <FeatureMeetingTile label="Last meeting" entry={lastEntry} committee={c} onPick={onPick} />
+          <FeatureMeetingTile label="Next meeting" entry={nextEntry} committee={c} onPick={onPick} />
+        </div>
+      )}
 
       {entries.length === 0 && (
         <div className="m-empty">
