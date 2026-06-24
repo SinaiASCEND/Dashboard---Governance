@@ -529,9 +529,19 @@
 
     return (
       <>
-        <div className="d-head">
-          <h1>Governance Dashboard</h1>
-          <div className="lede">A single view across the Executive Education Committee and its four subcommittees — meetings and minutes, membership and attendance, motions, action plans, curriculum reviews, and policies.</div>
+        <div className="og-mast d-mast">
+          <div className="scrim" />
+          <OrgMark />
+          <div className="inner">
+            <div className="og-eyebrow"><span className="dot" />Icahn School of Medicine at Mount Sinai · Office of Curricular Affairs</div>
+            <h1>Curricular Governance</h1>
+            <div className="og-tag">A single view across the Executive Education Committee and its four subcommittees — meetings and minutes, membership and attendance, motions, action plans, curriculum reviews, and policies.</div>
+            <div className="og-counts">
+              <span className="c"><span className="sw" style={{ background: "#fff", opacity: .55 }} />AY 2025–26</span>
+              <span className="c"><span className="sw v" />{COMMITTEE_IDS.length} Governance Bodies</span>
+              <span className="c"><span className="sw" style={{ background: "#fff", opacity: .5 }} />{filed.length} Meetings on record</span>
+            </div>
+          </div>
         </div>
 
         <div className="d-kpis">
@@ -1516,6 +1526,7 @@
             <div className="og-counts">
               <span className="c"><span className="sw v" />{O.votingCount} Voting Members</span>
               <span className="c"><span className="sw nv" />{O.nonVotingCount} Non-Voting Members</span>
+              <span className="c"><span className="sw" style={{ background: "#fff", opacity: .5 }} />Quorum {O.quorum} of {O.votingSeats}</span>
             </div>
           </div>
         </div>
@@ -1555,12 +1566,19 @@
         </div>
         <div className="d-kv">
           <span className="k">Seat / Role</span><span className="v">{m.role}</span>
+          {m.proTitle && <><span className="k">Professional title</span><span className="v">{m.proTitle}</span></>}
           <span className="k">Committee tier</span><span className="v">{t.label}</span>
+          {(() => {
+            const term = m.isTBA ? null
+              : (m.renew && m.renew !== "N/A") ? (m.start + " \u2013 " + m.renew)
+              : (m.renew === "N/A") ? (m.start + " (no fixed end)")
+              : m.start ? ("Since " + m.start) : null;
+            return term ? <><span className="k">Term</span><span className="v">{term}</span></> : null;
+          })()}
           {m.email && <><span className="k">Email</span><span className="v"><a href={"mailto:" + m.email}>{m.email}</a></span></>}
         </div>
-        {m.isTBA
-          ? <div className="d-prose" style={{ marginTop: 12 }}>This seat is currently open (to be announced).</div>
-          : <div className="synth-mark" style={{ marginTop: 12, display: "block" }}>Email follows the firstname.lastname@mssm.edu convention — verify before use.</div>}
+        {m.isTBA && <div className="d-prose" style={{ marginTop: 12 }}>This seat is currently open (to be announced).</div>}
+        {m.note && !m.isTBA && <div className="synth-mark" style={{ marginTop: 12, display: "block" }}>{m.note}</div>}
       </Drawer>
     );
   }
