@@ -275,6 +275,8 @@
     doc: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></>,
     download: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></>,
     chev: <polyline points="9 6 15 12 9 18" />,
+    org: <><rect x="9" y="3" width="6" height="5" rx="1" /><rect x="3" y="16" width="6" height="5" rx="1" /><rect x="15" y="16" width="6" height="5" rx="1" /><path d="M12 8v4M6 12h12M6 12v4M18 12v4" /></>,
+    mail: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 7l9 6 9-6" /></>,
     x: <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>,
   };
 
@@ -432,7 +434,7 @@
   const NAV = [
     { group: "Overview", items: [["overview", "Dashboard", "dash"]] },
     { group: "Governance", items: [["meetings", "Meetings", "cal"], ["motions", "Motions & Votes", "gavel"], ["actions", "Action Plans", "check"]] },
-    { group: "People", items: [["members", "Members", "users"], ["attendance", "Attendance", "grid"]] },
+    { group: "People", items: [["orgchart", "Org Chart", "org"], ["members", "Members", "users"], ["attendance", "Attendance", "grid"]] },
     { group: "Library", items: [["reviews", "Curriculum Reviews", "book"], ["policies", "Policies", "doc"], ["bylaws", "Bylaws & Charters", "doc", "bylaws.html"]] },
   ];
 
@@ -566,6 +568,19 @@
               </div>
             );
           })}
+        </div>
+
+        <div className="section-head"><h2 style={{ fontSize: 17 }}>Committee structure</h2></div>
+        <div className="og-tile" onClick={() => onNav("orgchart")} style={{ marginBottom: 24 }} role="button" tabIndex={0}>
+          <div className="swatch"><OrgMark2 /></div>
+          <div className="body">
+            <div className="t">EEC Org Chart</div>
+            <div className="s">The full Executive Education Committee structure — co-chairs, faculty-at-large, student representatives, and non-voting subcommittee chairs and liaisons.</div>
+            <div className="meta">
+              {window.EEC_ORG && <><span><b>{window.EEC_ORG.votingCount}</b> voting</span><span><b>{window.EEC_ORG.nonVotingCount}</b> non-voting</span><span><b>{window.EEC_ORG.namedCount}</b> members</span></>}
+            </div>
+          </div>
+          <span className="go"><Icon d={ICONS.chev} size={18} /></span>
         </div>
 
         <div className="d-grid2">
@@ -1346,6 +1361,210 @@
     );
   }
 
+  // ════════════════ EEC ORG CHART ════════════════
+  const ORG_CSS = `
+.og-mast { position: relative; overflow: hidden; border-radius: var(--radius-lg); padding: 30px 32px 26px; margin-bottom: 24px; background: linear-gradient(118deg,#221F72 0%,#163a86 46%,#00AEEF 128%); color:#fff; box-shadow: var(--shadow-md); }
+.og-mast .scrim { position:absolute; inset:0; background: linear-gradient(96deg, rgba(13,11,42,.58) 0%, rgba(13,11,42,.14) 60%, transparent 88%); pointer-events:none; }
+.og-mast .mark { position:absolute; right:14px; top:50%; transform:translateY(-50%); width:300px; max-width:36%; opacity:.92; pointer-events:none; }
+.og-mast .inner { position:relative; z-index:2; }
+.og-eyebrow { display:inline-flex; align-items:center; gap:11px; font-family:var(--mono); font-size:10.5px; letter-spacing:.15em; text-transform:uppercase; font-weight:600; line-height:1.4; }
+.og-eyebrow .dot { width:9px; height:9px; border-radius:50%; background:#D80B8C; box-shadow:0 0 0 4px rgba(216,11,140,.28); flex:0 0 auto; }
+.og-mast h1 { font-family:var(--serif); font-size:30px; font-weight:700; letter-spacing:-.02em; margin:14px 0 0; line-height:1.05; }
+.og-tag { font-size:13.5px; line-height:1.55; max-width:62ch; color:#EAF2FF; margin-top:12px; padding-left:14px; border-left:3px solid #D80B8C; }
+.og-counts { display:flex; flex-wrap:wrap; gap:9px 18px; margin-top:18px; font-weight:600; font-size:12.5px; }
+.og-counts .c { display:inline-flex; align-items:center; gap:8px; }
+.og-counts .sw { width:11px; height:11px; border-radius:3px; flex:0 0 auto; }
+.og-counts .sw.v { background:#34BDF1; }
+.og-counts .sw.nv { background:transparent; border:2px dashed #f5a0cf; }
+
+.og-band { display:flex; align-items:center; gap:12px; margin:8px 0 16px; }
+.og-band .lab { display:inline-flex; align-items:center; gap:8px; font-size:10.5px; font-weight:700; letter-spacing:.13em; text-transform:uppercase; padding:5px 14px; border-radius:999px; }
+.og-band .lab.v { background: var(--brand-cyan-tint); color: var(--brand-cyan-deep); }
+.og-band .lab.nv { background: var(--grey-2); color: var(--grey-11); }
+.og-band .lab .d { width:8px; height:8px; border-radius:50%; }
+.og-band .lab.nv .d { border-radius:2px; background:transparent; border:1.5px dashed var(--grey-7); }
+.og-band .ln { flex:1; height:1px; background: var(--grey-3); }
+
+.og-tier { margin-bottom: 20px; }
+.og-tierhead { display:flex; align-items:baseline; gap:9px; margin:0 0 11px 2px; }
+.og-tierhead .lbl { font-size:11px; font-weight:700; letter-spacing:.11em; text-transform:uppercase; }
+.og-tierhead .sub { font-size:11px; color: var(--grey-7); font-weight:500; }
+
+.og-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(184px, 1fr)); gap:14px; }
+.og-grid.cap { max-width:560px; margin:0 auto; grid-template-columns: repeat(2, 1fr); }
+
+.og-card { position:relative; background: var(--paper); border:1px solid var(--grey-3); border-radius: var(--radius-lg); padding:16px 14px 13px; text-align:center; cursor:pointer; box-shadow: var(--shadow-sm); transition: box-shadow .16s ease, transform .16s ease, border-color .16s ease; }
+.og-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.og-card.nv { border-style: dashed; }
+.og-ph { width:74px; height:74px; border-radius:14px; margin:0 auto 10px; position:relative; overflow:hidden; background: var(--grey-2); }
+.og-ph .ini { position:absolute; inset:0; display:grid; place-items:center; font-family:var(--serif); font-weight:700; font-size:24px; color:#fff; }
+.og-ph img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.og-nm { font-weight:600; font-size:13.5px; line-height:1.18; color: var(--ink); letter-spacing:-.005em; }
+.og-rl { font-size:11.5px; line-height:1.3; margin-top:3px; font-weight:500; }
+.og-vote { display:inline-flex; align-items:center; gap:5px; margin-top:9px; font-size:9px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; padding:2px 8px; border-radius:5px; }
+.og-vote.v { background: var(--good-tint); color: var(--good); }
+.og-vote.nv { background: var(--grey-1); color: var(--grey-7); border:1px dashed var(--grey-3); }
+
+/* Overview tile */
+.og-tile { position:relative; overflow:hidden; display:flex; align-items:center; gap:18px; padding:0; cursor:pointer; border:1px solid var(--grey-3); border-radius: var(--radius-lg); background: var(--paper); box-shadow: var(--shadow-sm); transition: box-shadow .16s ease, transform .16s ease; }
+.og-tile:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.og-tile .swatch { align-self:stretch; width:128px; flex:0 0 auto; position:relative; background: linear-gradient(135deg,#221F72,#00AEEF); display:grid; place-items:center; }
+.og-tile .swatch svg { width:78px; height:78px; opacity:.95; }
+.og-tile .body { padding:16px 18px; flex:1; min-width:0; }
+.og-tile .body .t { font-family:var(--serif); font-size:17px; font-weight:600; letter-spacing:-.01em; }
+.og-tile .body .s { font-size:12.5px; color: var(--grey-11); margin-top:3px; line-height:1.45; }
+.og-tile .body .meta { display:flex; gap:14px; margin-top:10px; font-size:11px; color: var(--grey-7); }
+.og-tile .body .meta b { color: var(--ink-2); font-weight:600; }
+.og-tile .go { padding-right:18px; color: var(--grey-7); flex:0 0 auto; }
+@media (max-width:600px){ .og-tile .swatch { width:84px; } }
+`;
+
+  // Mount-once style injector for the org chart.
+  function useOrgCss() {
+    useEffect(() => {
+      if (document.getElementById("__og_css")) return;
+      const s = document.createElement("style"); s.id = "__og_css"; s.textContent = ORG_CSS; document.head.appendChild(s);
+    }, []);
+  }
+
+  // Reusable arrow mark (mirrors the EEC masthead motif).
+  function OrgMark() {
+    return (
+      <svg className="mark" viewBox="0 0 2149.48 711.8" aria-hidden="true">
+        <g fill="#fff" opacity=".82">
+          <polygon points="98.44 711.8 780.24 192.2 701.99 112.2" /><polygon points="352.93 711.8 907.91 322.73 827.42 240.41" />
+          <polygon points="612.48 711.8 1408.32 78.9 1328.93 0" /><polygon points="862.16 711.8 1534.77 204.49 1453.79 124.04" />
+          <polygon points="1121.1 711.8 1661.95 330.86 1583.26 252.65" /><polygon points="1372.32 711.8 1791.42 459.51 1708.85 377.47" />
+          <polygon points="1629.71 711.8 1918.65 585.84 1837.54 505.31" />
+        </g>
+        <polygon fill="#D80B8C" points="1967.05 633.96 1888.65 711.8 2045.42 711.8" />
+      </svg>
+    );
+  }
+
+  function orgInitials(name) {
+    if (name === "TBA") return "—";
+    const p = name.replace(/,.*$/, "").replace(/\(.*?\)/g, "").trim().split(/\s+/).filter((x) => x && !/^[a-z]\.?$/i.test(x));
+    if (!p.length) return "?";
+    return ((p[0][0] || "") + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase();
+  }
+
+  function OrgCard({ m, onSelect }) {
+    const t = window.EEC_ORG.tierByKey[m.tier];
+    return (
+      <div className={"og-card" + (m.voting ? "" : " nv")} onClick={() => onSelect({ type: "orgmember", id: m.id })}>
+        <div className="og-ph" style={{ boxShadow: "inset 0 0 0 2px " + t.color }}>
+          <div className="ini" style={{ background: t.color }}>{orgInitials(m.name)}</div>
+          {m.photo ? <img src={m.photo} alt={m.name} loading="lazy" onError={(e) => { e.target.style.display = "none"; }} /> : null}
+        </div>
+        <div className="og-nm">{m.name}</div>
+        <div className="og-rl" style={{ color: t.deep }}>{m.role}</div>
+        <div className={"og-vote " + (m.voting ? "v" : "nv")}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: m.voting ? "var(--good)" : "transparent", border: m.voting ? 0 : "1.5px dashed var(--grey-7)" }} />
+          {m.voting ? "Voting" : "Non-voting"}
+        </div>
+      </div>
+    );
+  }
+
+  function OrgTier({ tierKey, onSelect }) {
+    const O = window.EEC_ORG;
+    const t = O.tierByKey[tierKey];
+    const list = O.members.filter((m) => m.tier === tierKey);
+    return (
+      <div className="og-tier">
+        <div className="og-tierhead">
+          <span className="lbl" style={{ color: t.deep }}>{t.label}</span>
+          {t.sub && <span className="sub">· {t.sub}</span>}
+        </div>
+        <div className="og-grid">{list.map((m) => <OrgCard key={m.id} m={m} onSelect={onSelect} />)}</div>
+      </div>
+    );
+  }
+
+  function OrgBand({ kind, text }) {
+    return (
+      <div className="og-band">
+        <span className={"lab " + (kind === "v" ? "v" : "nv")}><span className="d" />{text}</span>
+        <span className="ln" />
+      </div>
+    );
+  }
+
+  // Compact white hierarchy glyph for the overview tile swatch.
+  function OrgMark2() {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="9" y="2.5" width="6" height="5" rx="1.2" /><rect x="2.5" y="16.5" width="6" height="5" rx="1.2" /><rect x="15.5" y="16.5" width="6" height="5" rx="1.2" />
+        <path d="M12 7.5v4M5.5 12.5h13M5.5 12.5v4M18.5 12.5v4" />
+      </svg>
+    );
+  }
+
+  function OrgChart({ onSelect }) {
+    useOrgCss();
+    const O = window.EEC_ORG;
+    return (
+      <>
+        <div className="og-mast">
+          <div className="scrim" />
+          <OrgMark />
+          <div className="inner">
+            <span className="og-eyebrow"><span className="dot" />Icahn School of Medicine at Mount Sinai · Office of Curricular Affairs</span>
+            <h1>Executive Education Committee</h1>
+            <div className="og-tag">Faculty-led oversight of the undergraduate medical education program — reviewing, approving, and continuously improving the curriculum across all phases.</div>
+            <div className="og-counts">
+              <span className="c"><span className="sw v" />{O.votingCount} Voting Members</span>
+              <span className="c"><span className="sw nv" />{O.nonVotingCount} Non-Voting Members</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Co-Chairs */}
+        <div className="og-tier">
+          <div className="og-tierhead"><span className="lbl" style={{ color: O.tierByKey.cochair.deep }}>Co-Chairs</span></div>
+          <div className="og-grid cap">{O.members.filter((m) => m.tier === "cochair").map((m) => <OrgCard key={m.id} m={m} onSelect={onSelect} />)}</div>
+        </div>
+
+        <OrgBand kind="v" text={"Voting Members · " + (O.tierByKey ? O.members.filter((m) => m.voting && !m.isTBA).length : "") + " seats"} />
+        <OrgTier tierKey="faculty" onSelect={onSelect} />
+        <OrgTier tierKey="student" onSelect={onSelect} />
+
+        <OrgBand kind="nv" text="Non-Voting Members · Advisory & Liaison" />
+        <OrgTier tierKey="subchair" onSelect={onSelect} />
+        <OrgTier tierKey="rep" onSelect={onSelect} />
+      </>
+    );
+  }
+
+  function OrgMemberDrawer({ id, onClose }) {
+    const m = window.EEC_ORG.byId[id];
+    if (!m) return null;
+    const t = window.EEC_ORG.tierByKey[m.tier];
+    return (
+      <Drawer eyebrow={t.label} title={m.name} onClose={onClose}>
+        <div style={{ display: "flex", gap: 15, alignItems: "center", marginBottom: 18 }}>
+          <div className="og-ph" style={{ margin: 0, width: 72, height: 72, boxShadow: "inset 0 0 0 2px " + t.color }}>
+            <div className="ini" style={{ background: t.color }}>{orgInitials(m.name)}</div>
+            {m.photo ? <img src={m.photo} alt={m.name} onError={(e) => { e.target.style.display = "none"; }} /> : null}
+          </div>
+          <div className={"og-vote " + (m.voting ? "v" : "nv")} style={{ marginTop: 0 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: m.voting ? "var(--good)" : "transparent", border: m.voting ? 0 : "1.5px dashed var(--grey-7)" }} />
+            {m.voting ? "Voting member" : "Non-voting member"}
+          </div>
+        </div>
+        <div className="d-kv">
+          <span className="k">Seat / Role</span><span className="v">{m.role}</span>
+          <span className="k">Committee tier</span><span className="v">{t.label}</span>
+          {m.email && <><span className="k">Email</span><span className="v"><a href={"mailto:" + m.email}>{m.email}</a></span></>}
+        </div>
+        {m.isTBA
+          ? <div className="d-prose" style={{ marginTop: 12 }}>This seat is currently open (to be announced).</div>
+          : <div className="synth-mark" style={{ marginTop: 12, display: "block" }}>Email follows the firstname.lastname@mssm.edu convention — verify before use.</div>}
+      </Drawer>
+    );
+  }
+
   // ── App shell ───────────────────────────────────────────────────────────────
   function DesktopApp() {
     const [section, setSection] = useState("overview");
@@ -1356,6 +1575,9 @@
     useEffect(() => {
       if (document.getElementById("__d_css")) return;
       const s = document.createElement("style"); s.id = "__d_css"; s.textContent = DESKTOP_CSS; document.head.appendChild(s);
+      if (!document.getElementById("__og_css")) {
+        const o = document.createElement("style"); o.id = "__og_css"; o.textContent = ORG_CSS; document.head.appendChild(o);
+      }
     }, []);
 
     const e = E();
@@ -1364,6 +1586,7 @@
       motions: e.MOTIONS.length,
       actions: e.ACTIONS.filter((a) => a.status !== "Completed").length,
       members: e.MEMBERS.filter((m) => m.tracked).length,
+      orgchart: (window.EEC_ORG && window.EEC_ORG.namedCount) || null,
       policies: e.POLICIES.length,
       reviews: e.REVIEWS.length,
     };
@@ -1394,6 +1617,7 @@
           <Sidebar section={section} onNav={nav} badges={badges} />
           <main className="d-main" ref={mainRef}>
             {section === "overview" && <Overview onNav={nav} onSelect={onSelect} />}
+            {section === "orgchart" && <OrgChart onSelect={onSelect} />}
             {section === "meetings" && <Meetings committee={committee} setCommittee={setCommittee} onSelect={onSelect} />}
             {section === "members" && <Members committee={committee} setCommittee={setCommittee} onSelect={onSelect} />}
             {section === "attendance" && <Attendance onSelect={onSelect} />}
@@ -1406,6 +1630,7 @@
 
         {selected && selected.type === "meeting" && <MeetingDrawer id={selected.id} onClose={closeDrawer} onSelect={onSelect} />}
         {selected && selected.type === "member" && <MemberDrawer id={selected.id} onClose={closeDrawer} onSelect={onSelect} />}
+        {selected && selected.type === "orgmember" && <OrgMemberDrawer id={selected.id} onClose={closeDrawer} />}
         {selected && selected.type === "action" && <ActionDrawer id={selected.id} onClose={closeDrawer} />}
         {selected && selected.type === "review" && <ReviewDrawer id={selected.id} onClose={closeDrawer} />}
         {selected && selected.type === "policy" && <PolicyDrawer id={selected.id} onClose={closeDrawer} onSelect={onSelect} />}
