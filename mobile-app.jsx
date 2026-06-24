@@ -650,6 +650,7 @@ function MobileApp() {
     actions: "Action Items",
     motions: "Motions & Votes",
     members: "Members",
+    orgchart: "Org Chart",
     attendance: "Attendance",
     reviews: "Curriculum Reviews",
     policies: "Policies",
@@ -662,6 +663,7 @@ function MobileApp() {
     action: "Action Item",
     motion: "Motion",
     member: "Member",
+    orgmember: "Member",
     review: "Curriculum Review",
     policy: "Policy",
     "agenda-item": "Agenda Item",
@@ -730,6 +732,7 @@ function SectionScreen({ section, onSection, onItem }) {
     case "actions":        return <S.ActionsScreen    onItem={onItem} />;
     case "motions":        return <S.MotionsScreen    onItem={onItem} />;
     case "members":        return <S.MembersScreen    onItem={onItem} />;
+    case "orgchart":       return <S.OrgChartScreen   onItem={onItem} />;
     case "attendance":     return <S.AttendanceScreen />;
     case "reviews":        return <S.ReviewsScreen    onItem={onItem} />;
     case "policies":       return <S.PoliciesScreen   onItem={onItem} />;
@@ -748,6 +751,7 @@ function ItemScreen({ kind, id, meetingId, idx }) {
     case "action":      return <S.ActionDetail id={id} />;
     case "motion":      return <S.MotionDetail id={id} />;
     case "member":      return <S.MemberDetail id={id} />;
+    case "orgmember":   return <S.OrgMemberDetail id={id} />;
     case "review":      return <S.ReviewDetail id={id} />;
     case "policy":      return <S.PolicyDetail id={id} />;
     case "agenda-item": return <S.AgendaItemDetail meetingId={meetingId} idx={idx} />;

@@ -272,6 +272,44 @@ const SECTIONS_CSS = `
   margin-right: 4px;
 }
 .m-explore-row .badge.warn { background: var(--bad-tint); color: var(--bad); }
+
+/* ── Org chart (mobile) ─────────────────────────────────────────────── */
+.m-og-mast {
+  position: relative; overflow: hidden; border-radius: 16px;
+  padding: 18px 16px 16px; margin: 2px 0 14px; color: #fff;
+  background: linear-gradient(122deg,#221F72 0%,#163a86 52%,#00AEEF 132%);
+  box-shadow: var(--shadow-sm);
+}
+.m-og-mast .scrim { position: absolute; inset: 0; background: linear-gradient(100deg, rgba(13,11,42,.5) 0%, rgba(13,11,42,.1) 64%, transparent 92%); pointer-events: none; }
+.m-og-mast .inner { position: relative; z-index: 2; }
+.m-og-mast .eyebrow { font-size: 9.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; opacity: .85; display: flex; align-items: center; gap: 6px; }
+.m-og-mast .eyebrow .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--brand-magenta); box-shadow: 0 0 0 3px rgba(216,11,140,.28); }
+.m-og-mast h2 { font-family: var(--serif); font-size: 21px; font-weight: 700; letter-spacing: -.02em; margin: 9px 0 0; line-height: 1.08; }
+.m-og-mast .tag { font-size: 11.5px; line-height: 1.45; opacity: .92; margin-top: 7px; }
+.m-og-mast .counts { display: flex; flex-wrap: wrap; gap: 6px 8px; margin-top: 12px; }
+.m-og-mast .counts .c { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 600; letter-spacing: .01em; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.2); padding: 3px 8px; border-radius: 999px; }
+.m-og-mast .counts .sw { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.m-og-mast .counts .sw.v { background: #6ff0c0; }
+.m-og-mast .counts .sw.nv { background: rgba(255,255,255,.55); }
+
+.m-og-tier { margin: 14px 0 4px; display: flex; align-items: baseline; gap: 8px; }
+.m-og-tier .lbl { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); }
+.m-og-tier .sub { font-size: 10px; color: var(--grey-7); letter-spacing: .02em; }
+.m-og-tier .bar { flex: 1; height: 2px; border-radius: 2px; background: var(--grey-3); }
+
+.m-og-row {
+  width: 100%; display: flex; align-items: center; gap: 12px; text-align: left;
+  background: var(--paper); border: 1px solid var(--grey-3); border-radius: 13px;
+  padding: 9px 11px; margin-top: 8px; cursor: pointer;
+  transition: border-color .12s, transform .04s;
+}
+.m-og-row:active { transform: scale(.992); }
+.m-og-row .ava { width: 44px; height: 44px; border-radius: 50%; flex: 0 0 auto; object-fit: cover; background: var(--grey-2); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #fff; overflow: hidden; }
+.m-og-row .nm { font-size: 13.5px; font-weight: 650; color: var(--ink-1); line-height: 1.2; }
+.m-og-row .rl { font-size: 11px; color: var(--grey-11); margin-top: 2px; line-height: 1.25; }
+.m-og-vote { flex: 0 0 auto; font-size: 8.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; padding: 3px 7px; border-radius: 999px; }
+.m-og-vote.v { background: var(--good-tint); color: var(--good); }
+.m-og-vote.nv { background: var(--grey-2); color: var(--grey-7); }
 `;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -389,6 +427,7 @@ const SectionIcon = ({ name, size = 18 }) => {
     case "action-plans":  return <svg {...p}><rect x="4" y="4" width="16" height="16" rx="2"/><path d="m8 12 2.5 2.5L16 9"/></svg>;
     case "motions":    return <svg {...p}><path d="m14 4 6 6"/><path d="m11 7 6 6-2 2-6-6z"/><path d="m9 9-6 6 2 2 6-6"/><path d="M14 21h8"/></svg>;
     case "members":    return <svg {...p}><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5"/><path d="M14 20c0-2 2-4 5-4"/></svg>;
+    case "orgchart":   return <svg {...p}><rect x="9" y="3" width="6" height="5" rx="1.2"/><rect x="3" y="16" width="6" height="5" rx="1.2"/><rect x="15" y="16" width="6" height="5" rx="1.2"/><path d="M12 8v4M6 16v-2h12v2M12 12v2"/></svg>;
     case "policies":   return <svg {...p}><path d="M4 5c0-1 1-2 2-2h13v17H6c-1 0-2 .5-2 2"/><path d="M4 5v17"/></svg>;
     case "reviews":
     case "review-full":
@@ -405,6 +444,7 @@ function ExploreList({ onPick }) {
   const phaseCount = window.EEC.REVIEWS.filter(r => /phase/i.test(r.title)).length;
 
   const items = [
+    { kind: "orgchart",      label: "EEC Org Chart",         sub: window.EEC_ORG ? `${window.EEC_ORG.namedCount} members · ${window.EEC_ORG.votingCount} voting` : "Executive Education Committee roster", bg: "var(--brand-cyan-deep)", badge: null },
     { kind: "review-full",   label: "Full Curriculum Review", sub: "AY 2023–24 · integrated longitudinal report", bg: "var(--brand-violet)", badge: null },
     { kind: "reviews-phase", label: "Phase Reviews",          sub: "Phase 1 (Pre-Clerkship) · Phase 2 (Clerkship)",   bg: "var(--brand-cyan)",   badge: phaseCount },
     { kind: "action-plans",  label: "Action Plans",            sub: "LCME closed-loop tracker items",                  bg: "var(--brand-magenta)", badge: trackerCount },
@@ -1898,9 +1938,121 @@ function AgendaItemDetail({ meetingId, idx }) {
   );
 }
 
+// ─── Org chart screen + member detail ────────────────────────────────────
+function orgInitials(name) {
+  if (!name || name === "TBA") return "—";
+  const parts = name.replace(/,.*$/, "").trim().split(/\s+/).filter((p) => !/^[A-Z]\.?$/.test(p));
+  const a = parts[0] || "", b = parts.length > 1 ? parts[parts.length - 1] : "";
+  return ((a[0] || "") + (b[0] || "")).toUpperCase();
+}
+function OrgAvatar({ m, size = 44 }) {
+  const [ok, setOk] = useStateMS(true);
+  const tier = window.EEC_ORG.tierByKey[m.tier];
+  const base = { width: size, height: size, borderRadius: "50%", flex: "0 0 auto", objectFit: "cover", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: Math.round(size * 0.32), color: "#fff", background: "var(--grey-2)" };
+  if (m.photo && ok) {
+    return <img src={m.photo} alt={m.name} onError={() => setOk(false)} style={base} />;
+  }
+  return <span style={{ ...base, background: m.isTBA ? "var(--grey-7)" : (tier ? tier.color : "var(--brand-violet)") }}>{orgInitials(m.name)}</span>;
+}
+function OrgTierGroup({ tier, members, onItem }) {
+  if (!members.length) return null;
+  return (
+    <>
+      <div className="m-og-tier">
+        <span className="lbl">{tier.label}</span>
+        {tier.sub && <span className="sub">{tier.sub}</span>}
+        <span className="bar" />
+      </div>
+      {members.map((m) => (
+        <button key={m.id} className="m-og-row" style={{ borderLeft: "3px solid " + tier.color }} onClick={() => onItem("orgmember", m.id)}>
+          <OrgAvatar m={m} />
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <div className="nm">{m.name}</div>
+            <div className="rl">{m.role}</div>
+          </span>
+          <span className={"m-og-vote " + (m.voting ? "v" : "nv")}>{m.voting ? "Voting" : "Non-voting"}</span>
+        </button>
+      ))}
+    </>
+  );
+}
+function OrgChartScreen({ onItem }) {
+  const O = window.EEC_ORG;
+  if (!O) return <div className="m-body"><div className="m-empty"><h3>Org chart unavailable</h3><p>The roster data (eec-org.js) did not load.</p></div></div>;
+  const byTier = (key) => O.members.filter((m) => m.tier === key);
+  return (
+    <div className="m-body">
+      <div className="m-og-mast">
+        <div className="scrim" />
+        <div className="inner">
+          <div className="eyebrow"><span className="dot" />Office of Curricular Affairs</div>
+          <h2>Executive Education Committee</h2>
+          <div className="tag">Faculty-led oversight of the undergraduate medical education program — reviewing, approving, and continuously improving the curriculum.</div>
+          <div className="counts">
+            <span className="c"><span className="sw v" />{O.votingCount} Voting</span>
+            <span className="c"><span className="sw nv" />{O.nonVotingCount} Non-Voting</span>
+            <span className="c">Quorum {O.quorum} of {O.votingSeats}</span>
+          </div>
+        </div>
+      </div>
+      {O.tiers.map((t) => <OrgTierGroup key={t.key} tier={t} members={byTier(t.key)} onItem={onItem} />)}
+      <div style={{ fontSize: 10.5, color: "var(--grey-7)", textAlign: "center", marginTop: 18, lineHeight: 1.5 }}>
+        {O.namedCount} named members · {O.totalSeats - O.namedCount} open seat{(O.totalSeats - O.namedCount) === 1 ? "" : "s"} · AY 2026–27
+      </div>
+    </div>
+  );
+}
+function OrgMemberDetail({ id }) {
+  const O = window.EEC_ORG;
+  const m = O && O.byId[id];
+  if (!m) return <div className="m-body"><div className="m-empty"><h3>Member not found</h3></div></div>;
+  const tier = O.tierByKey[m.tier];
+  const term = m.isTBA ? null
+    : (m.renew && m.renew !== "N/A") ? (m.start + " – " + m.renew)
+    : (m.renew === "N/A") ? (m.start + " (no fixed end)")
+    : m.start ? ("Since " + m.start) : null;
+  const rows = [
+    ["Seat / Role", m.role],
+    ["Professional title", m.proTitle || null],
+    ["Committee tier", tier ? tier.label : null],
+    ["Voting status", m.voting ? "Voting member" : "Non-voting member"],
+    ["Term", term],
+  ].filter((r) => r[1]);
+  return (
+    <div className="m-body">
+      <div style={{ display: "flex", gap: 13, alignItems: "center", margin: "4px 0 16px" }}>
+        <OrgAvatar m={m} size={60} />
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontFamily: "var(--serif)", fontSize: 18, fontWeight: 700, color: "var(--ink-1)", lineHeight: 1.1 }}>{m.name}</div>
+          <div style={{ fontSize: 11.5, color: "var(--grey-11)", marginTop: 3 }}>{tier ? tier.label : ""}</div>
+          <span className={"m-og-vote " + (m.voting ? "v" : "nv")} style={{ marginTop: 6, display: "inline-block" }}>{m.voting ? "Voting" : "Non-voting"}</span>
+        </div>
+      </div>
+      <div className="m-detail-card">
+        {rows.map(([k, v]) => (
+          <div key={k} style={{ display: "flex", gap: 10, padding: "9px 0", borderBottom: "1px solid var(--grey-2)" }}>
+            <span style={{ flex: "0 0 38%", fontSize: 11, fontWeight: 600, color: "var(--grey-7)", letterSpacing: ".02em" }}>{k}</span>
+            <span style={{ flex: 1, fontSize: 12.5, color: "var(--ink-1)" }}>{v}</span>
+          </div>
+        ))}
+        {m.email && (
+          <div style={{ display: "flex", gap: 10, padding: "9px 0" }}>
+            <span style={{ flex: "0 0 38%", fontSize: 11, fontWeight: 600, color: "var(--grey-7)", letterSpacing: ".02em" }}>Email</span>
+            <a href={"mailto:" + m.email} style={{ flex: 1, fontSize: 12.5, color: "var(--brand-cyan-deep)", wordBreak: "break-all" }}>{m.email}</a>
+          </div>
+        )}
+      </div>
+      {m.note && <div style={{ fontSize: 11, color: "var(--grey-7)", marginTop: 12, lineHeight: 1.5, fontStyle: "italic" }}>{m.note}</div>}
+      {m.isTBA && <div style={{ fontSize: 12, color: "var(--grey-11)", marginTop: 12 }}>This seat is currently open (to be announced).</div>}
+    </div>
+  );
+}
+
 window.MobileSections = {
   ExploreList,
   OverviewScreen,
+  OrgChartScreen,
+  OrgMemberDetail,
   ActionsScreen,
   MotionsScreen,
   MembersScreen,
